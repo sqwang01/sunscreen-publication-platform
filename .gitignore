@@ -1,0 +1,16 @@
+# secrets — never commit API keys
+.env
+*.key
+secrets.*
+
+# os / editor
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# python (if a local viewer is added later)
+__pycache__/
+*.pyc
+.venv/
+venv/
