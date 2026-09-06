@@ -52,8 +52,8 @@ topics:
     label: Photoprotection in skin of color; pigmentary disorders
     pubmed: '(photoprotect*[tiab] OR sunscreen*[tiab] OR "Sunscreening Agents"[MeSH]) AND ("Skin Pigmentation"[MeSH] OR "skin of color"[tiab] OR "skin of colour"[tiab] OR Fitzpatrick[tiab] OR "dark skin"[tiab] OR melasma[tiab] OR "post-inflammatory hyperpigmentation"[tiab] OR "ethnic skin"[tiab])'
     openalex: photoprotection skin of color melasma hyperpigmentation pigmentation sunscreen
-    last_reviewed:
-    known_reviews: []
+    last_reviewed: 2026-09-06
+    known_reviews: ["Leybengrub et al, Cureus 2026 - 'Beyond Melanin: A Literature Review of Photoprotection Mechanisms and Gaps in Skin of Color' (PMID 42668981)"]
     notes: Cosmetic acceptability / white cast is a recurring adherence theme.
 
   - id: oral-systemic-photoprotection
@@ -76,8 +76,8 @@ topics:
     label: Sunscreen & skin cancer / actinic keratosis prevention evidence
     pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH] OR photoprotect*[tiab] OR "sun protection"[tiab]) AND ("Skin Neoplasms/prevention and control"[MeSH] OR melanoma[tiab] OR "basal cell carcinoma"[tiab] OR "squamous cell carcinoma"[tiab] OR "actinic keratos*"[tiab] OR "keratinocyte carcinoma"[tiab] OR "field cancerization"[tiab] OR "skin cancer prevention"[tiab])'
     openalex: sunscreen skin cancer prevention melanoma keratinocyte carcinoma actinic keratosis
-    last_reviewed:
-    known_reviews: []
+    last_reviewed: 2026-09-06
+    known_reviews: ["Kumar, Pandey, Jan; JEADV Clinical Practice 2026-08-30 - 'Sun Protection Behaviours in Skin Cancer Survivors: A Systematic Review and Meta-Analysis' (DOI 10.1002/jvc2.70434)"]
     notes: Nambour trial remains the RCT anchor; look for long-term follow-up and modeling studies.
 
   - id: photoaging-infrared-pollution
@@ -108,8 +108,8 @@ topics:
     label: UV filters & the marine environment; coral reef; ecotoxicology; bans
     pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH] OR oxybenzone[tiab] OR "benzophenone-3"[tiab] OR octinoxate[tiab] OR "UV filter*"[tiab]) AND ("Anthozoa"[MeSH] OR coral*[tiab] OR reef*[tiab] OR aquatic[tiab] OR ecotoxic*[tiab] OR "marine environment"[tiab] OR "environmental impact"[tiab] OR "Water Pollutants, Chemical"[MeSH])'
     openalex: sunscreen UV filter coral reef ecotoxicology oxybenzone environmental marine
-    last_reviewed:
-    known_reviews: []
+    last_reviewed: 2026-09-06
+    known_reviews: ["Jin, Hong, Lee; Comp Biochem Physiol C 2026-08-31 - 'Benzophenone-type UV filters in aquatic ecosystems: Sources, toxicological impacts, and interactions with coexisting...' (PMID 42674295)"]
     notes: Separate legislative/advocacy claims from peer-reviewed environmental toxicology.
 
   - id: vitamin-d-tradeoff
