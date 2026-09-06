@@ -17,7 +17,7 @@ Topics swept: {{N_TOPICS}} | New papers: {{N_PAPERS}} | Trend items: {{N_TRENDS}
 - **Evidence needed:** {{literature only / retrospective data / prospective study / …}}
 - **Target journals:** {{J1}} → {{J2}} → {{J3}}
 - **Budget (from journals.csv):** body {{words}} | abstract {{type, words}} | refs {{max}} | figs+tables {{max}} | checklist {{CONSORT/STROBE/PRISMA/CARE/none}}
-- **Rubric (quick):** novelty {{}}/feas {{}}/impact {{}}/vis {{}}/fit {{}}/risk {{}}/effort {{}} → **{{weighted}}**
+- **Rubric (quick):** novelty {{}}/feasibility {{}}/impact {{}}/visibility {{}}/leadership {{}}/risk {{}}/effort {{}} → **{{weighted}}**
 - **First action:** {{pre-pitch editor / draft outline / pull N papers / …}}
 
 ### Idea 2 — …
