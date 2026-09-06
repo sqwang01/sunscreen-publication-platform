@@ -96,6 +96,15 @@ h2.ptitle{font-size:13px;margin:0 0 14px;color:var(--muted);text-transform:upper
 .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:999px;margin-top:8px}
 .tag-ex{background:rgba(180,83,9,.18);color:var(--park)}
 
+/* editable board — only rendered when served via scripts/serve-dashboard.py */
+.card-edit{display:flex;align-items:center;gap:6px;margin-top:8px;color:var(--muted)}
+.card-edit>span{flex:0 0 34px;font-size:9px;text-transform:uppercase;letter-spacing:.04em}
+.card-edit select,.card-edit input{flex:1 1 auto;min-width:0;font:inherit;font-size:11.5px;
+  padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+.card-edit select:focus-visible,.card-edit input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.card-saved{display:block;margin-top:6px;font-size:10.5px;font-weight:600;color:var(--fresh)}
+.card-saved.err{color:var(--kill)}
+
 /* per-idea expanded brief (ideas/briefs/<id>.md) — button on the card,
    body rendered full-width in a reader modal (see .brief-modal) */
 .brief-src{display:none}
@@ -245,13 +254,12 @@ td.note{max-width:280px;color:var(--muted)}
 </style>
 </head>
 <body>
-<div id="staleBanner" class="stale-banner" data-generated="1788667194" hidden></div>
+<div id="staleBanner" class="stale-banner" data-generated="1788670359" hidden></div>
 <header class="top">
   <div class="top-row">
     <div>
       <h1>Sunscreen &amp; Photoprotection Pipeline</h1>
-      <div class="sub">Read-only view &middot; generated 2026-09-05 22:59 &middot; run
-        <code>python3 scripts/build-dashboard.py</code> to refresh</div>
+      <div class="sub">Read-only view &middot; generated 2026-09-05 23:52 &middot; run <code>python3 scripts/build-dashboard.py</code> to refresh</div>
     </div>
     <div class="controls">
       <button id="densityBtn" class="ctl" type="button">Comfortable</button>
@@ -275,22 +283,10 @@ td.note{max-width:280px;color:var(--muted)}
   <section id="panel-board" class="panel" role="tabpanel" aria-labelledby="tab-panel-board" tabindex="0">
     <h2 class="ptitle">Pipeline board &mdash; ideas/backlog.csv by status &middot; cards with a brief in ideas/briefs/ open a reader</h2>
     <div class="board">
-        <section class="col">
-          <header><span>Idea</span><span class="n">2</span></header>
+        <section class="col" data-status="idea">
+          <header><span>Idea</span><span class="n">1</span></header>
           <div class="col-body">
-          <article class="card s-gl">
-            <div class="card-top">
-              <span class="card-id">EX-2</span>
-              <span class="card-score">4.4</span>
-            </div>
-            <h4>Anti-sunscreen misinformation on short-form video: a call for coordinated dermatology response</h4>
-            <div class="card-meta">misinformation-public-health &middot; Viewpoint</div>
-            <div class="card-j">▸ JAMA Dermatology → Journal of the American Academy of Dermatology → Australasian Journal of Dermatology</div>
-            <div class="card-next"><b>Next:</b> Draft 1000-word outline to JAMA Derm Viewpoint spec</div>
-            <span class="tag tag-ex">example</span>
-            
-          </article>
-          <article class="card s-gl">
+          <article class="card s-gl" data-id="EX-1">
             <div class="card-top">
               <span class="card-id">EX-1</span>
               <span class="card-score">4.0</span>
@@ -301,6 +297,22 @@ td.note{max-width:280px;color:var(--muted)}
             <div class="card-next"><b>Next:</b> Pre-pitch editor with scope + proposed length</div>
             <span class="tag tag-ex">example</span>
             <button class="brief-open" type="button" data-brief="EX-1" data-title="Visible-light photoprotection endpoints in melasma: what the trials actually measured">Abstract &amp; significance</button>
+          </article></div>
+        </section>
+        <section class="col" data-status="drafting">
+          <header><span>Drafting</span><span class="n">1</span></header>
+          <div class="col-body">
+          <article class="card s-gl" data-id="EX-2">
+            <div class="card-top">
+              <span class="card-id">EX-2</span>
+              <span class="card-score">4.4</span>
+            </div>
+            <h4>Anti-sunscreen misinformation on short-form video: a call for coordinated dermatology response</h4>
+            <div class="card-meta">misinformation-public-health &middot; Viewpoint</div>
+            <div class="card-j">▸ JAMA Dermatology → Journal of the American Academy of Dermatology → Australasian Journal of Dermatology</div>
+            <div class="card-next"><b>Next:</b> Draft 1000-word outline to JAMA Derm Viewpoint spec</div>
+            <span class="tag tag-ex">example</span>
+            
           </article></div>
         </section></div><div id="brief-src-EX-1" class="brief-src" hidden><h1>Visible-light photoprotection endpoints in melasma: what the trials actually measured</h1>
 <p><strong>Article type:</strong> Review (narrative / scoping) · <strong>Primary target:</strong> Journal of Cosmetic Dermatology → Photodermatology, Photoimmunology &amp; Photomedicine → International Journal of Dermatology <strong>Reporting checklist:</strong> PRISMA-ScR if run as a scoping review; none if kept narrative <strong>Editor pre-pitch required:</strong> recommended — JCD accepts unsolicited reviews, but both fallbacks are "check with editor"</p>
@@ -1622,5 +1634,6 @@ td.note{max-width:280px;color:var(--muted)}
   filt();
 })();
 </script>
+
 </body>
 </html>
