@@ -37,6 +37,21 @@ coverage × mentions in the latest digest), **Journal targeting**
 Re-run the script after editing any source file. `dashboard.html` is gitignored;
 regenerate it rather than committing it.
 
+### Editing status from the board
+
+`open dashboard.html` is read-only. To change an idea's `status` or `next_action`
+without opening the CSV, run the local editable server instead:
+
+```
+python3 scripts/serve-dashboard.py      # http://127.0.0.1:8765, opens a browser
+```
+
+Every Pipeline-board card gets a Status dropdown and a Next field; each change
+writes straight back to `ideas/backlog.csv` (only that one line is rewritten) and
+is logged in the terminal. Review with `git diff ideas/backlog.csv` and commit
+when you want. Every other tab stays read-only, and the committed `index.html` /
+generated `dashboard.html` are untouched. Standard library only; Ctrl-C to stop.
+
 ## Repo layout
 
 ```
@@ -49,6 +64,7 @@ matching/decision-tree.md     article-type selection + reporting-guideline map +
 digests/TEMPLATE.md           format for the weekly surveillance digest
 digests/YYYY-MM-DD.md         weekly output
 scripts/build-dashboard.py    generates ./dashboard.html from the files above
+scripts/serve-dashboard.py    local editable dashboard; writes status / next_action back to backlog.csv
 ```
 
 ## The weekly digest

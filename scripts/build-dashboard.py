@@ -361,17 +361,21 @@ def score_class(v: float) -> str:
     return "s-kill"
 
 
-def build_pipeline(backlog: list[dict], briefs: dict[str, str] | None = None) -> str:
+def build_pipeline(backlog: list[dict], briefs: dict[str, str] | None = None,
+                   editable: bool = False) -> str:
     briefs = briefs or {}
     groups: dict[str, list[dict]] = {}
     for r in backlog:
         st = (r.get("status") or "idea").strip().lower()
         groups.setdefault(st, []).append(r)
 
-    order = [s for s in LIFECYCLE if s in groups] + [s for s in groups if s not in LIFECYCLE]
+    # In editable mode every lifecycle column is rendered (even when empty) so a
+    # card can always be dropped into its new status without a full reload.
+    order = [s for s in LIFECYCLE if s in groups or editable]
+    order += [s for s in groups if s not in LIFECYCLE]
     cols = []
     for st in order:
-        rows = sorted(groups[st], key=lambda r: r["_score"], reverse=True)
+        rows = sorted(groups.get(st, []), key=lambda r: r["_score"], reverse=True)
         cards = []
         for r in rows:
             v = r["_score"]
@@ -387,8 +391,28 @@ def build_pipeline(backlog: list[dict], briefs: dict[str, str] | None = None) ->
                 f'data-title="{esc(r.get("working_title"))}">'
                 'Abstract &amp; significance</button>'
             ) if bhtml else ""
+            if editable:
+                seen = set()
+                sts = [s for s in ([st] + LIFECYCLE) if not (s in seen or seen.add(s))]
+                opts = "".join(
+                    f'<option value="{esc(s)}"{" selected" if s == st else ""}>'
+                    f'{esc(STATUS_LABEL.get(s, s.capitalize()))}</option>' for s in sts
+                )
+                next_block = (
+                    f'<label class="card-edit"><span>Status</span>'
+                    f'<select class="card-status" data-id="{esc(rid)}">{opts}</select></label>'
+                    f'<label class="card-edit"><span>Next</span>'
+                    f'<input class="card-next-edit" type="text" data-id="{esc(rid)}" '
+                    f'value="{esc(r.get("next_action"))}" placeholder="next action…"></label>'
+                    f'<span class="card-saved" hidden></span>'
+                )
+            else:
+                next_block = (
+                    f'<div class="card-next"><b>Next:</b> {esc(r.get("next_action"))}</div>'
+                    if r.get("next_action") else ""
+                )
             cards.append(f"""
-          <article class="card {score_class(v)}">
+          <article class="card {score_class(v)}" data-id="{esc(rid)}">
             <div class="card-top">
               <span class="card-id">{esc(r.get('id'))}</span>
               <span class="card-score">{esc(r.get('weighted_total') or '–')}</span>
@@ -396,12 +420,12 @@ def build_pipeline(backlog: list[dict], briefs: dict[str, str] | None = None) ->
             <h4>{esc(r.get('working_title'))}</h4>
             <div class="card-meta">{esc(r.get('topic_id'))} &middot; {esc(r.get('proposed_article_type'))}</div>
             {f'<div class="card-j">▸ {esc(journals)}</div>' if journals else ''}
-            {f'<div class="card-next"><b>Next:</b> {esc(r.get("next_action"))}</div>' if r.get('next_action') else ''}
+            {next_block}
             {ex}
             {brief}
           </article>""")
         cols.append(f"""
-        <section class="col">
+        <section class="col" data-status="{esc(st)}">
           <header><span>{esc(STATUS_LABEL.get(st, st.capitalize()))}</span><span class="n">{len(rows)}</span></header>
           <div class="col-body">{''.join(cards) or '<p class="empty">—</p>'}</div>
         </section>""")
@@ -632,6 +656,15 @@ h2.ptitle{font-size:13px;margin:0 0 14px;color:var(--muted);text-transform:upper
 .card-next{font-size:11.5px;margin-top:6px;color:var(--muted)}
 .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:999px;margin-top:8px}
 .tag-ex{background:rgba(180,83,9,.18);color:var(--park)}
+
+/* editable board — only rendered when served via scripts/serve-dashboard.py */
+.card-edit{display:flex;align-items:center;gap:6px;margin-top:8px;color:var(--muted)}
+.card-edit>span{flex:0 0 34px;font-size:9px;text-transform:uppercase;letter-spacing:.04em}
+.card-edit select,.card-edit input{flex:1 1 auto;min-width:0;font:inherit;font-size:11.5px;
+  padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+.card-edit select:focus-visible,.card-edit input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.card-saved{display:block;margin-top:6px;font-size:10.5px;font-weight:600;color:var(--fresh)}
+.card-saved.err{color:var(--kill)}
 
 /* per-idea expanded brief (ideas/briefs/<id>.md) — button on the card,
    body rendered full-width in a reader modal (see .brief-modal) */
@@ -1019,8 +1052,80 @@ JS = """
 })();
 """
 
+# Injected only by scripts/serve-dashboard.py (editable=True). Posts inline
+# status / next-action edits back to ideas/backlog.csv and moves the card.
+EDIT_JS = """
+(function(){
+  var board=document.querySelector('.board');
+  if(!board||!window.SS_EDIT)return;
 
-def build_html(out_path: Path) -> str:
+  function post(id,patch,cb){
+    var x=new XMLHttpRequest();
+    x.open('POST','/api/idea');
+    x.setRequestHeader('Content-Type','application/json');
+    x.onreadystatechange=function(){
+      if(x.readyState!==4)return;
+      var ok=x.status>=200&&x.status<300,msg='';
+      try{msg=(JSON.parse(x.responseText||'{}').error)||'';}catch(e){}
+      cb(ok,msg);
+    };
+    x.send(JSON.stringify({id:id,patch:patch}));
+  }
+  function note(card,text,err){
+    var s=card.querySelector('.card-saved');
+    if(!s)return;
+    s.hidden=false; s.textContent=text; s.classList.toggle('err',!!err);
+    clearTimeout(s._t);
+    if(!err)s._t=setTimeout(function(){s.hidden=true;},1600);
+  }
+  function recount(){
+    [].slice.call(document.querySelectorAll('.board .col')).forEach(function(col){
+      var body=col.querySelector('.col-body'),
+          n=body.querySelectorAll('.card').length,
+          badge=col.querySelector('header .n'),
+          empty=body.querySelector('.empty');
+      if(badge)badge.textContent=n;
+      if(n===0&&!empty){
+        var p=document.createElement('p');p.className='empty';p.textContent='\\u2014';
+        body.appendChild(p);
+      }else if(n>0&&empty){empty.remove();}
+    });
+  }
+
+  board.addEventListener('change',function(e){
+    var sel=e.target.closest('.card-status');
+    if(sel){
+      var card=sel.closest('.card'),val=sel.value,prev=sel.dataset.prev||'';
+      post(sel.dataset.id,{status:val},function(ok,msg){
+        if(!ok){note(card,msg||'save failed',true);if(prev)sel.value=prev;return;}
+        var dest=document.querySelector('.board .col[data-status="'+val+'"] .col-body');
+        if(dest){dest.appendChild(card);recount();}
+        sel.dataset.prev=val;
+        note(card,'moved to '+val);
+      });
+      return;
+    }
+    var inp=e.target.closest('.card-next-edit');
+    if(inp){
+      var c=inp.closest('.card');
+      post(inp.dataset.id,{next_action:inp.value},function(ok,msg){
+        note(c,ok?'saved':(msg||'save failed'),!ok);
+      });
+    }
+  });
+  board.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&e.target.closest('.card-next-edit')){
+      e.preventDefault();e.target.blur();
+    }
+  });
+  [].slice.call(document.querySelectorAll('.card-status')).forEach(function(s){
+    s.dataset.prev=s.value;
+  });
+})();
+"""
+
+
+def build_html(out_path: Path, editable: bool = False) -> str:
     backlog = load_backlog()
     journals = load_journals()
     topics = load_topics()
@@ -1072,6 +1177,25 @@ def build_html(out_path: Path) -> str:
 
     gen = datetime.now().strftime("%Y-%m-%d %H:%M")
     gen_epoch = int(datetime.now().timestamp())
+
+    sub_line = (
+        'Editable view &middot; status / next-action changes save to '
+        '<code>ideas/backlog.csv</code>'
+        if editable else
+        'Read-only view &middot; generated ' + gen + ' &middot; run '
+        '<code>python3 scripts/build-dashboard.py</code> to refresh'
+    )
+    board_note = (
+        "Pipeline board &mdash; change Status or Next inline; each edit writes to "
+        "ideas/backlog.csv"
+        if editable else
+        "Pipeline board &mdash; ideas/backlog.csv by status &middot; cards with a "
+        "brief in ideas/briefs/ open a reader"
+    )
+    edit_js = (
+        f"<script>window.SS_EDIT=true;</script>\n<script>{EDIT_JS}</script>"
+        if editable else ""
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -1086,8 +1210,7 @@ def build_html(out_path: Path) -> str:
   <div class="top-row">
     <div>
       <h1>Sunscreen &amp; Photoprotection Pipeline</h1>
-      <div class="sub">Read-only view &middot; generated {gen} &middot; run
-        <code>python3 scripts/build-dashboard.py</code> to refresh</div>
+      <div class="sub">{sub_line}</div>
     </div>
     <div class="controls">
       <button id="densityBtn" class="ctl" type="button">Comfortable</button>
@@ -1109,8 +1232,8 @@ def build_html(out_path: Path) -> str:
 </header>
 <main>
   <section id="panel-board" class="panel" role="tabpanel" aria-labelledby="tab-panel-board" tabindex="0">
-    <h2 class="ptitle">Pipeline board &mdash; ideas/backlog.csv by status &middot; cards with a brief in ideas/briefs/ open a reader</h2>
-    {build_pipeline(backlog, briefs)}
+    <h2 class="ptitle">{board_note}</h2>
+    {build_pipeline(backlog, briefs, editable)}
   </section>
   <section id="panel-digest" class="panel" role="tabpanel" aria-labelledby="tab-panel-digest" tabindex="0">
     <h2 class="ptitle">Latest digest &mdash; digests/</h2>
@@ -1127,6 +1250,7 @@ def build_html(out_path: Path) -> str:
 </main>
 <script>window.DIGESTS={digests_js};</script>
 <script>{JS}</script>
+{edit_js}
 </body>
 </html>
 """
