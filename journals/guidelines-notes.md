@@ -78,10 +78,35 @@ flag which `TBD` rows a proposed idea depends on rather than trying to scrape th
   Research Letter: 750 w, ≤8 refs, no subheadings ("most prestigious form of BJD
   correspondence"). Image Correspondence: ≤100 w caption, ≤2 refs, ≤3 panels.
   ORCID required from Aug 2026; AI disclosure required from Aug 2025. Portal: ScholarOne.
-- **JAAD** — Original Article: **≤2500 w** (excl abstract/refs/figs/tables), abstract
-  ≤200 w, **Capsule Summary (3 bullets) required**, no figure/table limit. CME/reviews
-  are essentially all solicited; practical unsolicited routes are Original Article and
-  Notes & Comments / Research Letter. Remaining caps still `TBD` (Elsevier site blocked).
+- **JAAD** — verified 2026-09-05 from the AAD Help Center (Article Type Guidelines +
+  AI + Open Access articles; the main jaad.org Guide for Authors is Cloudflare-blocked
+  to the fetcher but its Zendesk help center at `jaad.zendesk.com/hc` is readable).
+  - **Original Article** (also From the Dermatology Foundation / Dermatologic Surgery /
+    Dermatopathology): **≤2500 w** (excl abstract/refs/figs/tables), structured abstract
+    ≤200 w, **Capsule Summary ≤50 w** (prose — what was known / what this adds /
+    implications; the old "3 bullets" wording is gone), **figures + tables ≤5 total**
+    (each panel of a multi-part figure counts; composite figures may not contain
+    clinical images), **references uncapped**.
+  - **CME**: 3000 w *per part*, abstract required, no ref/figure limit — needs Part I +
+    Part II proposal worksheets + outlines approved by the CME Planning Workgroup first.
+    **Clinical Review**: 2500 w, abstract + 50-w capsule, ≤5 figs/tables — needs a
+    1-page proposal first. Narrative reviews are otherwise invited-only.
+  - **Systematic Review / Meta-analysis (unsolicited)**: runs in the **letter format** —
+    ≤500 w, ≤5 refs, ≤2 figs/tables, **no abstract**, online only; no refs in
+    in-manuscript tables (included-studies table → Mendeley supplemental). A full-length
+    systematic review goes to **JAAD Reviews** (2500 w) instead.
+  - **Research Letter** and **Letter: Notes & Comments**: ≤500 w, ≤5 refs, ≤2
+    figs/tables, no abstract, online only. Same 500-w bucket as Editorials/Commentary,
+    Health Policy & Practice, Current Issues & Opinion, Controversies (Controversies
+    needs a paired pre-submission proposal). **The editor enforces every limit with no
+    exceptions** — reviewers cannot grant extra words/refs/figures; use supplemental.
+  - Portal: **Editorial Manager** (editorialmanager.com/jaad). OA: hybrid — subscription
+    route has **no fee**; **Gold OA = USD 4200** (25% discount for dues-paying AAD
+    members). AI may **not** be an author; disclose any generative-AI use in writing in
+    a "Declaration of Generative AI and AI-assisted technologies" section before the
+    reference list (basic grammar/spell-check is exempt). AI-in-dermatology papers must
+    follow **CONSORT-AI** and the **CLEAR Derm** checklist (upload the checklist).
+    Posters/meeting abstracts do not count as prior publication.
 - **Photodermatology, Photoimmunology & Photomedicine** — Original abstract structured
   (Background/purpose, Methods, Results, Conclusion), ≤250 w; no firm main-text cap
   stated (verify). **Letter to the Editor: ≤1000 w INCLUDING references, ≤10 refs,
