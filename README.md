@@ -10,7 +10,11 @@ Four engines:
 2. **Ideation** — turn digest signals into scored manuscript ideas in `ideas/backlog.csv`.
 3. **Targeting** — match each idea to an article type and 2–3 journals using
    `matching/decision-tree.md` and `journals/journals.csv`.
-4. **Execution tracking** — move ideas through the lifecycle in `ideas/backlog.csv`.
+4. **Expansion** — turn a chosen backlog row into a submission-style brief
+   (`ideas/briefs/<id>.md`): an abstract drafted to the target journal's spec plus
+   a two-line "why dermatology and the sun-care industry should care". Run
+   `scripts/expand-idea-prompt.md` against an idea `id`.
+5. **Execution tracking** — move ideas through the lifecycle in `ideas/backlog.csv`.
 
 ## Dashboard
 
@@ -22,7 +26,9 @@ python3 scripts/build-dashboard.py     # writes ./dashboard.html
 open dashboard.html
 ```
 
-Four tabs: **Pipeline board** (`ideas/backlog.csv` by lifecycle status),
+Four tabs: **Pipeline board** (`ideas/backlog.csv` by lifecycle status; a card
+whose idea has a brief in `ideas/briefs/` gets an "Abstract & significance"
+expander),
 **Latest digest** (newest `digests/*.md` rendered, with a picker for older ones),
 **Topic white-space** (`taxonomy/topics.yaml` staleness × known reviews × backlog
 coverage × mentions in the latest digest), **Journal targeting**
