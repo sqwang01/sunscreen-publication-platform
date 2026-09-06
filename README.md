@@ -28,7 +28,7 @@ open dashboard.html
 
 Four tabs: **Pipeline board** (`ideas/backlog.csv` by lifecycle status; a card
 whose idea has a brief in `ideas/briefs/` gets an "Abstract & significance"
-expander),
+button that opens the brief full-width in a reader overlay),
 **Latest digest** (newest `digests/*.md` rendered, with a picker for older ones),
 **Topic white-space** (`taxonomy/topics.yaml` staleness × known reviews × backlog
 coverage × mentions in the latest digest), **Journal targeting**

@@ -380,10 +380,12 @@ def build_pipeline(backlog: list[dict], briefs: dict[str, str] | None = None) ->
                             r.get("target_journal_3")) if j
             )
             ex = '<span class="tag tag-ex">example</span>' if r["_example"] else ""
-            bhtml = briefs.get((r.get("id") or "").strip())
+            rid = (r.get("id") or "").strip()
+            bhtml = briefs.get(rid)
             brief = (
-                '<details class="brief"><summary>Abstract &amp; significance</summary>'
-                f'<div class="brief-body">{bhtml}</div></details>'
+                f'<button class="brief-open" type="button" data-brief="{esc(rid)}" '
+                f'data-title="{esc(r.get("working_title"))}">'
+                'Abstract &amp; significance</button>'
             ) if bhtml else ""
             cards.append(f"""
           <article class="card {score_class(v)}">
@@ -403,7 +405,25 @@ def build_pipeline(backlog: list[dict], briefs: dict[str, str] | None = None) ->
           <header><span>{esc(STATUS_LABEL.get(st, st.capitalize()))}</span><span class="n">{len(rows)}</span></header>
           <div class="col-body">{''.join(cards) or '<p class="empty">—</p>'}</div>
         </section>""")
-    return f'<div class="board">{"".join(cols)}</div>'
+
+    # Brief bodies live outside the narrow board so the reader modal can show
+    # them full-width; the card carries only a button keyed by idea id.
+    stores = "".join(
+        f'<div id="brief-src-{esc(k)}" class="brief-src" hidden>{v}</div>'
+        for k, v in briefs.items()
+    )
+    modal = (
+        '<div id="briefModal" class="brief-modal" hidden>'
+        '<div class="brief-modal__backdrop" data-close></div>'
+        '<div class="brief-modal__panel" role="dialog" aria-modal="true"'
+        ' aria-label="Abstract &amp; significance">'
+        '<div class="brief-modal__bar">'
+        '<button class="brief-modal__x" type="button" data-close'
+        ' aria-label="Close reader">&times;</button></div>'
+        '<div id="briefModalBody" class="md-body brief-modal__body"></div>'
+        '</div></div>'
+    )
+    return f'<div class="board">{"".join(cols)}</div>{stores}{modal}'
 
 
 def build_whitespace(topics: list[dict], backlog: list[dict], dcounts: dict[str, int]) -> str:
@@ -613,26 +633,40 @@ h2.ptitle{font-size:13px;margin:0 0 14px;color:var(--muted);text-transform:upper
 .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:999px;margin-top:8px}
 .tag-ex{background:rgba(180,83,9,.18);color:var(--park)}
 
-/* per-idea expanded brief (ideas/briefs/<id>.md) */
-.brief{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
-.brief>summary{cursor:pointer;font-size:11px;font-weight:600;color:var(--accent);
-  list-style:none;display:flex;align-items:center;gap:4px}
-.brief>summary::-webkit-details-marker{display:none}
-.brief>summary::before{content:"\\25B8";font-size:9px;transition:transform .12s}
-.brief[open]>summary::before{transform:rotate(90deg)}
-.brief-body{font-size:11.5px;line-height:1.5;margin-top:8px;color:var(--ink)}
-.brief-body h1{font-size:12.5px;margin:0 0 6px}
-.brief-body h2{font-size:11.5px;margin:12px 0 4px;text-transform:uppercase;
-  letter-spacing:.03em;color:var(--muted)}
-.brief-body h3,.brief-body h4{font-size:11.5px;margin:10px 0 3px}
-.brief-body p{margin:5px 0}
-.brief-body ul,.brief-body ol{padding-left:16px;margin:5px 0}
-.brief-body li{margin:2px 0}
-.brief-body blockquote{margin:6px 0;padding:4px 0 4px 9px;border-left:2px solid var(--line);
-  color:var(--muted);font-size:10.5px}
-.brief-body hr{border:none;border-top:1px solid var(--line);margin:10px 0}
-.brief-body code{font-size:10.5px}
-.brief-body em{color:var(--muted)}
+/* per-idea expanded brief (ideas/briefs/<id>.md) — button on the card,
+   body rendered full-width in a reader modal (see .brief-modal) */
+.brief-src{display:none}
+.brief-open{margin-top:8px;appearance:none;cursor:pointer;
+  border:1px solid var(--line);background:var(--panel);color:var(--accent);
+  font:600 11px/1.4 inherit;padding:5px 9px;border-radius:6px;
+  display:inline-flex;align-items:center;gap:5px;width:100%}
+.brief-open::before{content:"\\25A2";font-size:11px}
+.brief-open::after{content:"open reader";margin-left:auto;font-weight:500;
+  color:var(--muted);font-size:10px}
+.brief-open:hover{border-color:var(--accent);color:var(--accent)}
+.brief-open:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+.brief-modal{position:fixed;inset:0;z-index:60;display:flex;
+  align-items:flex-start;justify-content:center;padding:6vh 18px 18px}
+.brief-modal[hidden]{display:none}
+.brief-modal__backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);
+  backdrop-filter:blur(1px)}
+.brief-modal__panel{position:relative;display:flex;flex-direction:column;
+  width:100%;max-width:800px;max-height:88vh;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:0 24px 64px rgba(0,0,0,.35);overflow:hidden}
+.brief-modal__bar{position:sticky;top:0;flex:0 0 auto;display:flex;
+  justify-content:flex-end;padding:8px 10px;background:var(--panel);
+  border-bottom:1px solid var(--line)}
+.brief-modal__x{appearance:none;border:1px solid var(--line);background:var(--bg);
+  color:var(--muted);font-size:16px;line-height:1;width:30px;height:30px;
+  border-radius:7px;cursor:pointer}
+.brief-modal__x:hover{color:var(--ink)}
+.brief-modal__x:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.brief-modal .brief-modal__body{flex:1 1 auto;overflow-y:auto;background:var(--panel);
+  border:none;border-radius:0;margin:0;padding:26px 34px}
+.brief-modal .brief-modal__body h1{font-size:19px;margin:0 0 .5em}
+.brief-modal .brief-modal__body>*:first-child{margin-top:0}
 
 /* grids */
 table.grid{border-collapse:collapse;width:100%;font-size:13px}
@@ -741,6 +775,9 @@ td.note{max-width:280px;color:var(--muted)}
   #jtable td.empty-row::before{content:none}
   .filters input[type=search]{min-width:0;flex:1 1 100%}
   .jcount{margin-left:0}
+  .brief-modal{padding:0}
+  .brief-modal__panel{max-width:none;max-height:100vh;height:100vh;border:none;border-radius:0}
+  .brief-modal .brief-modal__body{padding:18px 16px}
 }
 """
 
@@ -918,6 +955,43 @@ JS = """
     render();
   }
 
+  /* ---- per-idea brief reader (modal) ---- */
+  var bmodal=document.getElementById('briefModal'),
+      bbody=document.getElementById('briefModalBody'),
+      bpanel=bmodal?bmodal.querySelector('.brief-modal__panel'):null,
+      blast=null;
+  function closeBrief(){
+    if(!bmodal||bmodal.hidden)return;
+    bmodal.hidden=true;
+    body.style.overflow='';
+    if(blast){try{blast.focus();}catch(e){}blast=null;}
+  }
+  function openBrief(id,label){
+    var src=document.getElementById('brief-src-'+id);
+    if(!src||!bmodal)return;
+    bbody.innerHTML=src.innerHTML;
+    bbody.scrollTop=0;
+    if(bpanel)bpanel.setAttribute('aria-label',label||'Abstract & significance');
+    bmodal.hidden=false;
+    body.style.overflow='hidden';
+    var x=bmodal.querySelector('.brief-modal__x');
+    if(x)x.focus();
+  }
+  [].slice.call(document.querySelectorAll('.brief-open')).forEach(function(btn){
+    btn.addEventListener('click',function(){
+      blast=btn;
+      openBrief(btn.getAttribute('data-brief'),btn.getAttribute('data-title'));
+    });
+  });
+  if(bmodal){
+    [].slice.call(bmodal.querySelectorAll('[data-close]')).forEach(function(el){
+      el.addEventListener('click',closeBrief);
+    });
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Escape'||e.key==='Esc')closeBrief();
+    });
+  }
+
   /* ---- journal filters ---- */
   var q=document.getElementById('jq'),ty=document.getElementById('jtype'),
       tb=document.getElementById('jtbd'),st=document.getElementById('jstale'),
@@ -1035,7 +1109,7 @@ def build_html(out_path: Path) -> str:
 </header>
 <main>
   <section id="panel-board" class="panel" role="tabpanel" aria-labelledby="tab-panel-board" tabindex="0">
-    <h2 class="ptitle">Pipeline board &mdash; ideas/backlog.csv by status &middot; cards with a brief in ideas/briefs/ expand</h2>
+    <h2 class="ptitle">Pipeline board &mdash; ideas/backlog.csv by status &middot; cards with a brief in ideas/briefs/ open a reader</h2>
     {build_pipeline(backlog, briefs)}
   </section>
   <section id="panel-digest" class="panel" role="tabpanel" aria-labelledby="tab-panel-digest" tabindex="0">

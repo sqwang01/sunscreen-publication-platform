@@ -32,8 +32,9 @@ This file only covers what the README doesn't make obvious.
 - Article-type / journal selection logic: `matching/decision-tree.md`.
 - Per-idea expanded briefs: `ideas/briefs/<idea-id>.md` (committed, like digests),
   shape in `ideas/briefs/TEMPLATE.md`, produced by following
-  `scripts/expand-idea-prompt.md` against an idea `id`. The dashboard renders one
-  under its Pipeline-board card. Abstract results are framed as *anticipated*, not
+  `scripts/expand-idea-prompt.md` against an idea `id`. On the dashboard the
+  Pipeline-board card gets a button that opens the brief full-width in a reader
+  overlay. Abstract results are framed as *anticipated*, not
   data; delete the `EX-*` demo brief once real ideas exist.
 
 ## Weekly digest
