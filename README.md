@@ -101,3 +101,4 @@ scheduled agent can read; never commit it.
 
 `idea` -> `pitched` -> `drafting` -> `submitted` -> `revision` -> `accepted` -> `published`
 Side states: `parked` (revisit later), `killed` (abandon, keep the record).
+
