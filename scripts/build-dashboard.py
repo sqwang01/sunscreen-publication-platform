@@ -172,6 +172,125 @@ def digest_topic_counts(text: str, topic_ids: list[str]) -> dict[str, int]:
 
 
 # --------------------------------------------------------------------------- #
+# digest ranked-idea -> ideas/backlog.csv row
+#
+# Section 1 of a digest ("Ranked manuscript ideas") follows digests/TEMPLATE.md:
+# each idea is a `### Idea N — Title` heading followed by `- **Label:** value`
+# bullets. These helpers pull that structure out so the editable dashboard can
+# append a scored backlog row without the CSV being hand-edited. Only as reliable
+# as the digest's adherence to the template; unknown fields come back blank.
+# --------------------------------------------------------------------------- #
+def norm_title(s) -> str:
+    """Loose key for 'is this idea already in the backlog?' comparisons."""
+    return re.sub(r"\s+", " ", ("" if s is None else str(s)).strip().lower())
+
+
+def parse_digest_ideas(text: str) -> list[dict]:
+    """Ranked-idea blocks from a digest, in order.
+
+    Returns [{'n': int, 'title': str, '_fields': {label: value}}]. `_fields`
+    keys are the bold bullet labels lower-cased ('topic', 'why now',
+    'proposed article type', 'target journals', 'rubric (quick)', …).
+    """
+    lines = text.replace("\r\n", "\n").split("\n")
+    ideas: list[dict] = []
+    cur: dict | None = None
+    for line in lines:
+        m = re.match(r"^###\s+Idea\s*(\d+)\s*[—–-]\s*(.+?)\s*$", line)
+        if m:
+            if cur:
+                ideas.append(cur)
+            cur = {"n": int(m.group(1)), "title": m.group(2).strip(), "_fields": {}}
+            continue
+        if cur is None:
+            continue
+        if re.match(r"^(##\s|---\s*$)", line):
+            ideas.append(cur)
+            cur = None
+            continue
+        bm = re.match(r"^\s*[-*]\s*\*\*(.+?):\*\*\s*(.*)$", line)
+        if bm:
+            cur["_fields"][bm.group(1).strip().lower()] = bm.group(2).strip()
+    if cur:
+        ideas.append(cur)
+    return ideas
+
+
+_RUBRIC_MAP = {
+    "novelty": "score_novelty",
+    "feasibility": "score_feasibility",
+    "impact": "score_impact",
+    "visibility": "score_visibility",
+    "leadership": "score_strategic_fit",   # digest calls criterion 5 "leadership"
+    "strategic": "score_strategic_fit",
+    "risk": "score_competitive_risk",      # reverse-scored, kept as written
+    "effort": "score_effort_payoff",
+}
+
+
+def _parse_digest_rubric(s: str) -> tuple[dict, str]:
+    """'novelty 5 / feasibility 5 / … → **4.65**' -> ({score_*: '5', …}, '4.65')."""
+    scores: dict = {}
+    for word, val in re.findall(r"([A-Za-z]+)\s*/?\s*(\d(?:\.\d+)?)", s):
+        col = _RUBRIC_MAP.get(word.lower())
+        if col:
+            scores[col] = val
+    m = re.search(r"(?:→|-+>)\s*\*{0,2}\s*([\d.]+)", s)
+    return scores, (m.group(1) if m else "")
+
+
+def _unlink(s: str) -> str:
+    """Drop `[text](url)` markdown link wrappers, keeping the text."""
+    return re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", s or "").strip()
+
+
+def digest_idea_to_row(idea: dict, digest_stem: str, today: str | None = None) -> dict:
+    """A parse_digest_ideas() entry -> an ideas/backlog.csv row dict (no `id`)."""
+    f = idea.get("_fields", {})
+    today = today or TODAY.isoformat()
+
+    topic = f.get("topic", "")
+    tm = re.match(r"\s*([A-Za-z0-9][A-Za-z0-9-]*)", topic)
+    topic_id = tm.group(1) if tm else topic.strip()
+
+    art = f.get("proposed article type", "")
+    art = re.split(r"\s*[/(]", art, maxsplit=1)[0].strip() or art.strip()
+
+    journals = [
+        re.sub(r"\s*\([^)]*\)\s*$", "", p).strip()
+        for p in re.split(r"\s*(?:→|-+>)\s*", f.get("target journals", ""))
+        if p.strip()
+    ]
+    j1, j2, j3 = (journals + ["", "", ""])[:3]
+
+    scores, weighted = _parse_digest_rubric(
+        f.get("rubric (quick)") or f.get("rubric") or ""
+    )
+    why = _unlink(f.get("why now", ""))
+
+    row = {
+        "date_added": today,
+        "topic_id": topic_id,
+        "working_title": idea.get("title", "").strip(),
+        "proposed_article_type": art,
+        "evidence_on_hand": f.get("evidence needed", "").strip(),
+        "target_journal_1": j1,
+        "target_journal_2": j2,
+        "target_journal_3": j3,
+        "score_novelty": "", "score_feasibility": "", "score_impact": "",
+        "score_visibility": "", "score_strategic_fit": "",
+        "score_competitive_risk": "", "score_effort_payoff": "",
+        "weighted_total": weighted,
+        "status": "idea",
+        "next_action": _unlink(f.get("first action", "")),
+        "notes": f"From digest {digest_stem}, Idea {idea.get('n', '?')}."
+                 + (f" {why}" if why else ""),
+    }
+    row.update(scores)
+    return row
+
+
+# --------------------------------------------------------------------------- #
 # tiny markdown -> HTML (headings, hr, blockquote, lists, pipe tables, inline)
 # --------------------------------------------------------------------------- #
 def _inline(s: str) -> str:
@@ -776,6 +895,22 @@ td.note{max-width:280px;color:var(--muted)}
 .mk-gap{background:var(--gap-bg);color:var(--old)}
 .mk-noise{background:var(--chip-bg);color:var(--muted)}
 
+/* promote-a-digest-idea strip — only rendered by scripts/serve-dashboard.py */
+.promote-strip{background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:12px 14px;margin-bottom:16px}
+.promote-hd{font-size:12px;font-weight:600}
+.promote-sub{font-size:11px;color:var(--muted);margin:2px 0 9px}
+.promote-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.promote-list li{display:flex;align-items:center;gap:10px;font-size:12.5px;min-width:0}
+.promote-t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.promote-btn{flex:0 0 auto;appearance:none;cursor:pointer;border:1px solid var(--accent);
+  background:var(--accent);color:#fff;font:600 11px/1.4 inherit;padding:4px 11px;border-radius:6px}
+.promote-btn:hover{filter:brightness(1.06)}
+.promote-btn:disabled{opacity:.55;cursor:default;filter:none}
+.promote-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.promote-done{flex:0 0 auto;font-size:11px;font-weight:600;color:var(--fresh)}
+.promote-err{flex:0 0 auto;font-size:11px;font-weight:600;color:var(--kill)}
+
 /* responsive */
 @media (max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:700px){
@@ -1121,6 +1256,71 @@ EDIT_JS = """
   [].slice.call(document.querySelectorAll('.card-status')).forEach(function(s){
     s.dataset.prev=s.value;
   });
+
+  /* ---- promote a ranked digest idea into ideas/backlog.csv ---- */
+  var strip=document.getElementById('promoteStrip'),
+      pick=document.getElementById('digestPick');
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+  function drawStrip(){
+    if(!strip||!window.DIGEST_IDEAS)return;
+    var d=pick?pick.value:null,
+        items=(d&&window.DIGEST_IDEAS[d])||[];
+    if(!items.length){strip.hidden=true;strip.innerHTML='';return;}
+    var h='<div class="promote-hd">Move a ranked idea into the Pipeline board</div>'+
+      '<div class="promote-sub">Appends a scored row to ideas/backlog.csv with '+
+      'status \\u201cidea\\u201d. Reload to see it on the board.</div>'+
+      '<ul class="promote-list">';
+    items.forEach(function(it){
+      h+='<li data-idea="'+it.n+'"><span class="promote-t" title="'+esc(it.title)+'">'+
+        'Idea '+it.n+' \\u2014 '+esc(it.title)+'</span>'+
+        (it.in_backlog
+          ? '<span class="promote-done">in backlog \\u2713</span>'
+          : '<button type="button" class="promote-btn" data-digest="'+esc(d)+
+            '" data-idea="'+it.n+'">Add to backlog</button>')+
+        '</li>';
+    });
+    strip.innerHTML=h+'</ul>';
+    strip.hidden=false;
+  }
+  if(strip){
+    strip.addEventListener('click',function(e){
+      var b=e.target.closest('.promote-btn');
+      if(!b)return;
+      var li=b.closest('li'),dg=b.dataset.digest, n=b.dataset.idea;
+      b.disabled=true;b.textContent='Adding\\u2026';
+      var x=new XMLHttpRequest();
+      x.open('POST','/api/promote');
+      x.setRequestHeader('Content-Type','application/json');
+      x.onreadystatechange=function(){
+        if(x.readyState!==4)return;
+        var ok=x.status>=200&&x.status<300,res={};
+        try{res=JSON.parse(x.responseText||'{}');}catch(e){}
+        if(ok){
+          (( window.DIGEST_IDEAS[dg])||[]).forEach(function(it){
+            if(String(it.n)===String(n))it.in_backlog=true;
+          });
+          li.innerHTML='<span class="promote-t">Idea '+n+' \\u2014 '+
+            esc(res.working_title||'')+'</span><span class="promote-done">added as '+
+            esc(res.id||'?')+' \\u2713</span>';
+        }else{
+          b.disabled=false;b.textContent='Add to backlog';
+          var old=li.querySelector('.promote-err');
+          if(old)old.remove();
+          var s=document.createElement('span');
+          s.className='promote-err';
+          s.textContent=(res&&res.error)||x.statusText||'failed';
+          b.insertAdjacentElement('afterend',s);
+        }
+      };
+      x.send(JSON.stringify({digest:dg,idea:parseInt(n,10)}));
+    });
+    if(pick)pick.addEventListener('change',drawStrip);
+    drawStrip();
+  }
 })();
 """
 
@@ -1133,11 +1333,22 @@ def build_html(out_path: Path, editable: bool = False) -> str:
     briefs = load_briefs()
 
     digest_html: dict[str, str] = {}
+    # In editable mode only: parsed ranked ideas per digest, each flagged with
+    # whether the backlog already holds a row with that working title. Powers the
+    # "Add to backlog" strip on the Latest-digest tab (scripts/serve-dashboard.py).
+    digest_ideas: dict[str, list[dict]] = {}
+    known_titles = {norm_title(r.get("working_title")) for r in backlog}
     latest_text = ""
     latest_window = ""
     for idx, p in enumerate(digests):
         txt = p.read_text(encoding="utf-8")
         digest_html[p.stem] = decorate_digest(render_md(txt))
+        if editable:
+            digest_ideas[p.stem] = [
+                {"n": it["n"], "title": it["title"],
+                 "in_backlog": norm_title(it["title"]) in known_titles}
+                for it in parse_digest_ideas(txt)
+            ]
         if idx == 0:
             latest_text = txt
             latest_window = digest_window(txt)
@@ -1168,12 +1379,14 @@ def build_html(out_path: Path, editable: bool = False) -> str:
         '<div>'
         f'<div class="digest-pick">Digest: <select id="digestPick">{digest_opts}</select>'
         f'{f" &nbsp;<span class=note-p>{esc(latest_window)}</span>" if latest_window else ""}</div>'
+        f'{"<div id=promoteStrip class=promote-strip hidden></div>" if editable else ""}'
         '<div id="digestBody" class="md-body"></div>'
         '</div></div>'
         if digests else '<p class="hint">No digests found in <code>digests/</code>.</p>'
     )
 
     digests_js = json.dumps(digest_html).replace("</", "<\\/")
+    ideas_js = json.dumps(digest_ideas).replace("</", "<\\/") if editable else "null"
 
     gen = datetime.now().strftime("%Y-%m-%d %H:%M")
     gen_epoch = int(datetime.now().timestamp())
@@ -1193,7 +1406,9 @@ def build_html(out_path: Path, editable: bool = False) -> str:
         "brief in ideas/briefs/ open a reader"
     )
     edit_js = (
-        f"<script>window.SS_EDIT=true;</script>\n<script>{EDIT_JS}</script>"
+        f"<script>window.SS_EDIT=true;</script>\n"
+        f"<script>window.DIGEST_IDEAS={ideas_js};</script>\n"
+        f"<script>{EDIT_JS}</script>"
         if editable else ""
     )
     return f"""<!doctype html>

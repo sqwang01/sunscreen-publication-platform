@@ -52,6 +52,17 @@ is logged in the terminal. Review with `git diff ideas/backlog.csv` and commit
 when you want. Every other tab stays read-only, and the generated `dashboard.html`
 is untouched. Standard library only; Ctrl-C to stop.
 
+### Promoting a digest idea to the board
+
+Served this way, the **Latest digest** tab also shows an "Add to backlog" button
+next to each ranked idea (it follows the digest picker, so older digests work
+too). Clicking it parses that idea's fields — title, topic, article type, target
+journals, the seven rubric scores, weighted total, first action — into a new
+`ideas/backlog.csv` row with `status: idea` and id `I-<n>`. Ideas whose working
+title is already in the backlog show "in backlog ✓" instead of a button, and a
+duplicate click is refused. Reload the page to see the new card on the Pipeline
+board.
+
 To also push edits to the deployed Vercel site automatically:
 
 ```

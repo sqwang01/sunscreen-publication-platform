@@ -17,8 +17,11 @@ This file only covers what the README doesn't make obvious.
   root is a separate, committed build for GitHub Pages.)
 - **The dashboard is read-only except when served by `scripts/serve-dashboard.py`**
   — that script re-renders `build_html(..., editable=True)` on `localhost` and
-  accepts a single `POST /api/idea` that patches `status` / `next_action` on one
-  `backlog.csv` row (rewriting just that line). Keep the static builds
+  accepts two POSTs: `POST /api/idea` patches `status` / `next_action` on one
+  `backlog.csv` row (rewriting just that line); `POST /api/promote` appends a new
+  scored row parsed from a ranked digest idea (id `I-<n>`, `status: idea`, refuses
+  a duplicate working title). Parsing lives in `build-dashboard.py`
+  (`parse_digest_ideas` / `digest_idea_to_row`). Keep the static builds
   (`dashboard.html`, `index.html`) read-only; `editable` defaults to `False`.
   Its `--publish` flag debounces edits, then rebuilds `index.html` and does one
   `git commit` (only `index.html` + `backlog.csv` staged) + `git push` so the
