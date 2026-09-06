@@ -20,6 +20,9 @@ This file only covers what the README doesn't make obvious.
   accepts a single `POST /api/idea` that patches `status` / `next_action` on one
   `backlog.csv` row (rewriting just that line). Keep the static builds
   (`dashboard.html`, `index.html`) read-only; `editable` defaults to `False`.
+  Its `--publish` flag debounces edits, then rebuilds `index.html` and does one
+  `git commit` (only `index.html` + `backlog.csv` staged) + `git push` so the
+  Vercel deploy updates; these runtime commits carry no Claude co-author trailer.
 - Never commit secrets — `.env`, `*.key`, `secrets.*` are gitignored. The digest
   runner uses public APIs (PubMed E-utilities, OpenAlex) that need no key.
 - Dates are absolute `YYYY-MM-DD` everywhere (filenames, CSV fields, YAML).

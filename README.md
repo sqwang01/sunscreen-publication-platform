@@ -49,8 +49,19 @@ python3 scripts/serve-dashboard.py      # http://127.0.0.1:8765, opens a browser
 Every Pipeline-board card gets a Status dropdown and a Next field; each change
 writes straight back to `ideas/backlog.csv` (only that one line is rewritten) and
 is logged in the terminal. Review with `git diff ideas/backlog.csv` and commit
-when you want. Every other tab stays read-only, and the committed `index.html` /
-generated `dashboard.html` are untouched. Standard library only; Ctrl-C to stop.
+when you want. Every other tab stays read-only, and the generated `dashboard.html`
+is untouched. Standard library only; Ctrl-C to stop.
+
+To also push edits to the deployed Vercel site automatically:
+
+```
+python3 scripts/serve-dashboard.py --publish
+```
+
+Then, ~10s after your last change in a burst, the server rebuilds `index.html`,
+makes one `git commit` (staging only `index.html` and `ideas/backlog.csv`), and
+`git push`es to `main` — Vercel redeploys from there. A failed push leaves the
+commit local and tells you to run `git push` yourself.
 
 ## Repo layout
 

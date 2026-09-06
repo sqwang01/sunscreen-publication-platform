@@ -5,10 +5,13 @@
 http://127.0.0.1:8765 with a Status dropdown and a Next-action field on every
 board card. Changing either writes straight back to ideas/backlog.csv (atomic
 replace) and logs the change in this terminal. Every other tab is unchanged and
-still read-only; nothing here touches the committed index.html or the generated
-dashboard.html.
+still read-only.
 
-    python3 scripts/serve-dashboard.py [--port 8765] [--no-browser]
+    python3 scripts/serve-dashboard.py [--port 8765] [--no-browser] [--publish]
+
+With --publish, a burst of edits is followed (after ~10s of quiet) by a rebuild
+of index.html plus a git commit + push, so the change reaches the deployed
+Vercel site on its own. Without it, edits stay local and you publish by hand.
 
 Standard library only. Ctrl-C to stop. Review edits with `git diff ideas/backlog.csv`.
 """
@@ -20,7 +23,9 @@ import importlib.util
 import io
 import json
 import os
+import subprocess
 import sys
+import threading
 import webbrowser
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -29,9 +34,13 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 BACKLOG = REPO / "ideas" / "backlog.csv"
+INDEX = REPO / "index.html"
 
 # Only `status` and `next_action` are writable from the board.
 EDITABLE_FIELDS = ("status", "next_action")
+
+# Seconds of no edits before --publish rebuilds + commits + pushes.
+PUBLISH_QUIET = 10.0
 
 # Load the hyphenated sibling module (not importable by name).
 _spec = importlib.util.spec_from_file_location(
@@ -103,6 +112,84 @@ def update_backlog(idea_id: str, patch: dict) -> dict:
     return changed
 
 
+def _git(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", "-C", str(REPO), *args],
+        capture_output=True, text=True,
+    )
+
+
+class Publisher:
+    """Debounced 'rebuild index.html, commit, push' so local edits reach Vercel.
+
+    Disabled unless --publish is passed. Each recorded edit (re)starts a timer;
+    once edits stop for PUBLISH_QUIET seconds one commit covers the whole burst.
+    Only ideas/backlog.csv and index.html are staged, so unrelated working-tree
+    changes are never swept in. A failed push leaves the commit local and says so.
+    """
+
+    def __init__(self, enabled: bool) -> None:
+        self.enabled = enabled
+        self._lock = threading.Lock()
+        self._pending: list[str] = []
+        self._timer: threading.Timer | None = None
+
+    def record(self, idea_id: str, changed: dict) -> None:
+        if not self.enabled or not changed:
+            return
+        with self._lock:
+            for k, (old, new) in changed.items():
+                self._pending.append(
+                    f"{idea_id} {old or '-'}→{new or '-'}" if k == "status"
+                    else f"{idea_id} next_action"
+                )
+            if self._timer:
+                self._timer.cancel()
+            self._timer = threading.Timer(PUBLISH_QUIET, self._publish)
+            self._timer.daemon = True
+            self._timer.start()
+
+    def flush(self) -> None:
+        """Publish any pending burst now (called on shutdown)."""
+        if not self.enabled:
+            return
+        with self._lock:
+            if self._timer:
+                self._timer.cancel()
+                self._timer = None
+        self._publish()
+
+    def _publish(self) -> None:
+        with self._lock:
+            items, self._pending = self._pending, []
+            self._timer = None
+        if not items:
+            return
+        msg = "backlog: " + "; ".join(items)
+        try:
+            INDEX.write_text(bd.build_html(INDEX, editable=False), encoding="utf-8")
+        except Exception as e:  # noqa: BLE001
+            print(f"  publish skipped — index.html rebuild failed: {e}")
+            return
+        add = _git("add", "ideas/backlog.csv", "index.html")
+        if add.returncode != 0:
+            print(f"  publish failed at `git add`: {add.stderr.strip()}")
+            return
+        if _git("diff", "--cached", "--quiet").returncode == 0:
+            print("  nothing to publish")
+            return
+        commit = _git("commit", "-m", msg)
+        if commit.returncode != 0:
+            print(f"  publish failed at `git commit`: {commit.stderr.strip()}")
+            return
+        push = _git("push")
+        if push.returncode != 0:
+            print(f"  committed locally but push failed: {push.stderr.strip()}\n"
+                  f"  run `git push` yourself when ready")
+        else:
+            print(f"  published → {msg}  (Vercel will redeploy)")
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "SunscreenDash/1.0"
 
@@ -155,6 +242,7 @@ class Handler(BaseHTTPRequestHandler):
         if changed:
             for k, (old, new) in changed.items():
                 print(f"[{stamp}] {idea_id}  {k}: {old or '-'} -> {new or '-'}")
+            self.server.publisher.record(idea_id, changed)
         else:
             print(f"[{stamp}] {idea_id}  (no change)")
         self._send(200, json.dumps({"ok": True, "changed": changed}).encode())
@@ -170,23 +258,38 @@ def main() -> None:
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--no-browser", action="store_true",
                     help="don't open a browser window")
+    ap.add_argument("--publish", action="store_true",
+                    help="after each edit burst, rebuild index.html + git commit + push "
+                         "so the change reaches the deployed Vercel site")
     args = ap.parse_args()
+
+    try:  # flush log lines as they happen, even when piped to a file
+        sys.stdout.reconfigure(line_buffering=True)
+    except AttributeError:
+        pass
 
     if not BACKLOG.exists():
         sys.exit(f"backlog not found: {BACKLOG}")
+    if args.publish and _git("rev-parse", "--is-inside-work-tree").returncode != 0:
+        sys.exit("--publish needs a git repo here")
 
     srv = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
+    srv.publisher = Publisher(args.publish)
     url = f"http://127.0.0.1:{args.port}/"
     print(f"editable dashboard: {url}")
     print(f"  edits -> {BACKLOG.relative_to(REPO)}  (review with: git diff ideas/backlog.csv)")
+    if args.publish:
+        print(f"  --publish ON: index.html rebuild + commit + push, "
+              f"{int(PUBLISH_QUIET)}s after the last edit")
     print("  Ctrl-C to stop")
     if not args.no_browser:
         webbrowser.open(url)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
-        print("\nstopped")
+        print("\nstopping — flushing any pending publish")
     finally:
+        srv.publisher.flush()
         srv.server_close()
 
 
