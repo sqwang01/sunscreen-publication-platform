@@ -5,7 +5,9 @@
 #   id            stable slug (used as topic_id in ideas/backlog.csv)
 #   label         human-readable name
 #   pubmed        query string for NCBI E-utilities esearch (db=pubmed)
-#   openalex      value for the `search` param of https://api.openalex.org/works
+#   openalex      value for the `search` param of https://api.openalex.org/works.
+#                 KEEP SHORT (2-4 core words): OpenAlex requires ALL words to
+#                 appear, so long phrases return zero hits.
 #   last_reviewed date this topic was last manually assessed for white space (YYYY-MM-DD)
 #   known_reviews recent reviews already covering this area (helps spot gaps)
 #   notes         freeform
@@ -19,7 +21,7 @@ topics:
   - id: uv-filters-regulatory
     label: UV filters & US/EU regulatory gap; next-generation filters
     pubmed: '("Sunscreening Agents"[MeSH] OR sunscreen*[tiab] OR "UV filter"[tiab] OR "ultraviolet filter*"[tiab]) AND (regulation[tiab] OR regulatory[tiab] OR GRASE[tiab] OR monograph[tiab] OR "Food and Drug Administration"[tiab] OR FDA[tiab] OR "Sunscreen Innovation Act"[tiab] OR bemotrizinol[tiab] OR bisoctrizole[tiab] OR "bis-ethylhexyloxyphenol methoxyphenyl triazine"[tiab] OR "methylene bis-benzotriazolyl tetramethylbutylphenol"[tiab] OR "new UV filter*"[tiab] OR "next-generation filter*"[tiab])'
-    openalex: sunscreen ultraviolet filter regulation FDA GRASE new filter approval
+    openalex: sunscreen filter regulation
     last_reviewed:
     known_reviews: []
     notes: Watch FDA proposed order status, EU SCCS opinions, and Asia-approved filters absent in the US.
@@ -27,7 +29,7 @@ topics:
   - id: systemic-absorption-safety
     label: Systemic absorption, endocrine questions, benzene/nitrosamine contamination
     pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH] OR oxybenzone[tiab] OR avobenzone[tiab] OR octocrylene[tiab] OR homosalate[tiab] OR octinoxate[tiab]) AND ("Skin Absorption"[MeSH] OR "systemic absorption"[tiab] OR "percutaneous absorption"[tiab] OR pharmacokinetic*[tiab] OR "plasma concentration*"[tiab] OR bioavailability[tiab] OR "endocrine disrupt*"[tiab] OR benzene[tiab] OR contamination[tiab] OR nitrosamine*[tiab])'
-    openalex: sunscreen systemic absorption pharmacokinetics oxybenzone benzene contamination safety
+    openalex: sunscreen systemic absorption
     last_reviewed:
     known_reviews: []
     notes: Anchor studies - Matta et al JAMA 2019/2020. Track recalls and independent lab testing.
@@ -35,7 +37,7 @@ topics:
   - id: spf-testing-metrology
     label: SPF / UVA test methods, ISO standards, SPF>50 debate, photostability
     pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH] OR "sun protection factor"[tiab]) AND (SPF[tiab] OR "UVA protection factor"[tiab] OR "critical wavelength"[tiab] OR "in vitro"[tiab] OR "ISO 24444"[tiab] OR "ISO 23675"[tiab] OR "ISO 23698"[tiab] OR "test method*"[tiab] OR "broad spectrum"[tiab] OR photostab*[tiab] OR "SPF 100"[tiab] OR "high SPF"[tiab])'
-    openalex: sunscreen SPF measurement in vitro method ISO UVA protection factor critical wavelength
+    openalex: sunscreen SPF testing
     last_reviewed:
     known_reviews: []
     notes: Hybrid in vitro/in vivo methods and non-animal UVA testing are active standardization areas.
@@ -43,7 +45,7 @@ topics:
   - id: visible-light-hev
     label: Visible light / HEV / blue light; iron oxides; tinted sunscreen
     pubmed: '("Light"[MeSH] OR "visible light"[tiab] OR "high-energy visible"[tiab] OR "blue light"[tiab] OR HEVL[tiab] OR "iron oxide*"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR tinted[tiab] OR pigment*[tiab] OR melasma[tiab] OR hyperpigmentation[tiab])'
-    openalex: visible light photoprotection iron oxide tinted sunscreen melasma blue light
+    openalex: visible light photoprotection
     last_reviewed:
     known_reviews: []
     notes: Clinical endpoints in melasma and PIH; screen vs artificial (device) blue light claims.
@@ -51,7 +53,7 @@ topics:
   - id: photoprotection-skin-of-color
     label: Photoprotection in skin of color; pigmentary disorders
     pubmed: '(photoprotect*[tiab] OR sunscreen*[tiab] OR "Sunscreening Agents"[MeSH]) AND ("Skin Pigmentation"[MeSH] OR "skin of color"[tiab] OR "skin of colour"[tiab] OR Fitzpatrick[tiab] OR "dark skin"[tiab] OR melasma[tiab] OR "post-inflammatory hyperpigmentation"[tiab] OR "ethnic skin"[tiab])'
-    openalex: photoprotection skin of color melasma hyperpigmentation pigmentation sunscreen
+    openalex: photoprotection skin color
     last_reviewed: 2026-09-06
     known_reviews: ["Leybengrub et al, Cureus 2026 - 'Beyond Melanin: A Literature Review of Photoprotection Mechanisms and Gaps in Skin of Color' (PMID 42668981)"]
     notes: Cosmetic acceptability / white cast is a recurring adherence theme.
@@ -59,7 +61,7 @@ topics:
   - id: oral-systemic-photoprotection
     label: Oral / nutritional photoprotection (Polypodium, nicotinamide, carotenoids)
     pubmed: '(Polypodium[tiab] OR "Polypodium leucotomos"[tiab] OR fernblock[tiab] OR niacinamide[tiab] OR nicotinamide[tiab] OR "beta-carotene"[tiab] OR carotenoid*[tiab] OR astaxanthin[tiab] OR lycopene[tiab] OR "oral photoprotection"[tiab] OR "systemic photoprotection"[tiab] OR "nutritional photoprotection"[tiab]) AND (photoprotect*[tiab] OR ultraviolet[tiab] OR "UV-induced"[tiab] OR erythema[tiab] OR "minimal erythema dose"[tiab] OR photoaging[tiab])'
-    openalex: oral photoprotection Polypodium leucotomos nicotinamide carotenoids systemic
+    openalex: oral photoprotection
     last_reviewed:
     known_reviews: []
     notes: ONTRAC (nicotinamide) is the key skin-cancer-prevention anchor; watch replication trials.
@@ -67,7 +69,7 @@ topics:
   - id: antioxidants-dna-repair
     label: Topical antioxidants; DNA-repair enzymes; photolyase
     pubmed: '("Antioxidants"[MeSH] OR antioxidant*[tiab] OR "vitamin C"[tiab] OR "ascorbic acid"[tiab] OR "vitamin E"[tiab] OR tocopherol[tiab] OR "ferulic acid"[tiab] OR "DNA repair enzyme*"[tiab] OR photolyase[tiab] OR "T4 endonuclease"[tiab] OR "8-oxoguanine"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR topical[tiab] OR ultraviolet[tiab])'
-    openalex: topical antioxidant photoprotection DNA repair enzyme photolyase sunscreen
+    openalex: antioxidant photoprotection
     last_reviewed:
     known_reviews: []
     notes: Distinguish marketing claims from controlled endpoint data (thymine dimers, AK counts).
@@ -75,23 +77,23 @@ topics:
   - id: skin-cancer-prevention
     label: Sunscreen & skin cancer / actinic keratosis prevention evidence
     pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH] OR photoprotect*[tiab] OR "sun protection"[tiab]) AND ("Skin Neoplasms/prevention and control"[MeSH] OR melanoma[tiab] OR "basal cell carcinoma"[tiab] OR "squamous cell carcinoma"[tiab] OR "actinic keratos*"[tiab] OR "keratinocyte carcinoma"[tiab] OR "field cancerization"[tiab] OR "skin cancer prevention"[tiab])'
-    openalex: sunscreen skin cancer prevention melanoma keratinocyte carcinoma actinic keratosis
+    openalex: sunscreen skin cancer
     last_reviewed: 2026-09-06
     known_reviews: ["Kumar, Pandey, Jan; JEADV Clinical Practice 2026-08-30 - 'Sun Protection Behaviours in Skin Cancer Survivors: A Systematic Review and Meta-Analysis' (DOI 10.1002/jvc2.70434)"]
     notes: Nambour trial remains the RCT anchor; look for long-term follow-up and modeling studies.
 
   - id: photoaging-infrared-pollution
     label: Photoaging; infrared-A; air pollution & the exposome
-    pubmed: '("Skin Aging"[MeSH] OR photoaging[tiab] OR photoageing[tiab] OR "extrinsic aging"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR infrared[tiab] OR "infrared A"[tiab] OR IRA[tiab] OR "air pollution"[tiab] OR "particulate matter"[tiab] OR exposome[tiab] OR environmental[tiab])'
-    openalex: photoaging photoprotection infrared radiation pollution exposome skin sunscreen
+    pubmed: '("Skin Aging"[MeSH] OR photoaging[tiab] OR photoageing[tiab] OR "extrinsic aging"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR infrared[tiab] OR "infrared A"[tiab] OR IRA[tiab] OR "air pollution"[tiab] OR "particulate matter"[tiab] OR exposome[tiab] OR environmental[tiab]) NOT (polymer*[tiab] OR plastic*[tiab] OR microplastic*[tiab] OR "tire wear"[tiab] OR asphalt[tiab] OR bitumen[tiab] OR weathering[tiab] OR coating*[tiab] OR "building material*"[tiab])'
+    openalex: sunscreen photoaging infrared
     last_reviewed:
     known_reviews: []
-    notes: IR-A protection claims are contested; keep an eye on methodology critiques.
+    notes: IR-A protection claims are contested; keep an eye on methodology critiques. NOT clause filters materials-science "photoaging" (UV weathering of plastics).
 
   - id: behavior-adherence-application
     label: Application amount, reapplication, adherence, real-world effectiveness
     pubmed: '(sunscreen*[tiab] OR "sun protection"[tiab] OR photoprotect*[tiab]) AND ("Patient Compliance"[MeSH] OR adherence[tiab] OR compliance[tiab] OR "application amount"[tiab] OR "2 mg/cm2"[tiab] OR reapplicat*[tiab] OR "real-world"[tiab] OR "usage behavi*"[tiab] OR "sun protective behavi*"[tiab] OR "Health Knowledge, Attitudes, Practice"[MeSH])'
-    openalex: sunscreen application amount reapplication adherence sun protective behavior real-world
+    openalex: sunscreen adherence behavior
     last_reviewed:
     known_reviews: []
     notes: Gap-rich area for pragmatic trials and survey studies.
@@ -99,7 +101,7 @@ topics:
   - id: pediatric-pregnancy
     label: Sunscreen in infants, children, and pregnancy
     pubmed: '(sunscreen*[tiab] OR photoprotect*[tiab] OR "sun protection"[tiab]) AND ("Infant"[MeSH] OR "Child"[MeSH] OR pediatric[tiab] OR paediatric[tiab] OR children[tiab] OR infant*[tiab] OR neonat*[tiab] OR "Pregnancy"[MeSH] OR pregnan*[tiab] OR breastfeeding[tiab])'
-    openalex: sunscreen photoprotection children infants pediatric pregnancy safety
+    openalex: sunscreen children pregnancy
     last_reviewed:
     known_reviews: []
     notes: Regulatory guidance (age <6 months) vs practical counseling; mineral-only messaging.
@@ -107,23 +109,23 @@ topics:
   - id: environmental-reef
     label: UV filters & the marine environment; coral reef; ecotoxicology; bans
     pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH] OR oxybenzone[tiab] OR "benzophenone-3"[tiab] OR octinoxate[tiab] OR "UV filter*"[tiab]) AND ("Anthozoa"[MeSH] OR coral*[tiab] OR reef*[tiab] OR aquatic[tiab] OR ecotoxic*[tiab] OR "marine environment"[tiab] OR "environmental impact"[tiab] OR "Water Pollutants, Chemical"[MeSH])'
-    openalex: sunscreen UV filter coral reef ecotoxicology oxybenzone environmental marine
+    openalex: sunscreen coral reef
     last_reviewed: 2026-09-06
     known_reviews: ["Jin, Hong, Lee; Comp Biochem Physiol C 2026-08-31 - 'Benzophenone-type UV filters in aquatic ecosystems: Sources, toxicological impacts, and interactions with coexisting...' (PMID 42674295)"]
     notes: Separate legislative/advocacy claims from peer-reviewed environmental toxicology.
 
   - id: vitamin-d-tradeoff
     label: Sunscreen use and vitamin D status
-    pubmed: '(sunscreen*[tiab] OR "sun protection"[tiab] OR photoprotect*[tiab]) AND ("Vitamin D"[MeSH] OR "vitamin D"[tiab] OR "25-hydroxyvitamin D"[tiab] OR cholecalciferol[tiab] OR "vitamin D deficiency"[tiab])'
-    openalex: sunscreen vitamin D status deficiency sun exposure
+    pubmed: '(sunscreen*[tiab] OR "sun protection"[tiab] OR photoprotect*[tiab] OR "sun exposure"[tiab]) AND ("vitamin D"[ti] OR "25-hydroxyvitamin D"[ti] OR "vitamin D deficiency"[ti] OR "vitamin D status"[tiab] OR "serum 25(OH)D"[tiab])'
     last_reviewed:
+    openalex: sunscreen vitamin D
     known_reviews: []
-    notes: Real-world use rarely lowers 25(OH)D; useful counseling-myth rebuttal material.
+    notes: Real-world use rarely lowers 25(OH)D; useful counseling-myth rebuttal material. Vitamin D restricted to title to cut generic deficiency-disease noise.
 
   - id: misinformation-public-health
     label: Sunscreen misinformation, social media, and sun-seeking trends
     pubmed: '(sunscreen*[tiab] OR "sun protection"[tiab] OR photoprotect*[tiab] OR "sun exposure"[tiab] OR tanning[tiab]) AND ("Communication"[MeSH] OR misinformation[tiab] OR "social media"[tiab] OR "Social Media"[MeSH] OR TikTok[tiab] OR Instagram[tiab] OR YouTube[tiab] OR "public perception"[tiab] OR "health communication"[tiab] OR infodemic[tiab] OR "sunscreen avoidance"[tiab])'
-    openalex: sunscreen misinformation social media TikTok public perception health communication
+    openalex: sunscreen misinformation social media
     last_reviewed:
     known_reviews: []
     notes: High-visibility Viewpoint/Commentary territory; pair with a content analysis if feasible.
@@ -131,7 +133,7 @@ topics:
   - id: photodermatoses-drug-photosensitivity
     label: Photodermatoses, drug-induced photosensitivity, cutaneous lupus
     pubmed: '("Photosensitivity Disorders"[MeSH] OR photodermat*[tiab] OR "polymorphous light eruption"[tiab] OR "polymorphic light eruption"[tiab] OR "solar urticaria"[tiab] OR "chronic actinic dermatitis"[tiab] OR "drug-induced photosensitivity"[tiab] OR photoallerg*[tiab] OR phototoxic*[tiab] OR "cutaneous lupus"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR management[tiab] OR "sun protection"[tiab])'
-    openalex: photodermatoses polymorphous light eruption drug photosensitivity photoprotection cutaneous lupus
+    openalex: photodermatoses photoprotection
     last_reviewed:
     known_reviews: []
     notes: Photopatch testing updates belong here and overlap with Contact Dermatitis.
@@ -139,7 +141,7 @@ topics:
   - id: formulation-vehicle-photostability
     label: Formulation & vehicle (spray, powder, stick), photostability, mineral filters
     pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH]) AND (formulation*[tiab] OR vehicle*[tiab] OR spray[tiab] OR aerosol[tiab] OR powder*[tiab] OR stick[tiab] OR cosmetic*[tiab] OR sensory[tiab] OR "cosmetic elegance"[tiab] OR photostab*[tiab] OR "film formation"[tiab] OR nanoparticle*[tiab] OR "zinc oxide"[tiab] OR "titanium dioxide"[tiab])'
-    openalex: sunscreen formulation vehicle spray powder photostability zinc oxide titanium dioxide
+    openalex: sunscreen formulation photostability
     last_reviewed:
     known_reviews: []
     notes: Nanoparticle penetration safety and spray inhalation exposure recur; watch EU nano rules.
