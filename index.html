@@ -1,0 +1,1267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sunscreen Pipeline Dashboard</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#f6f7f9; --panel:#fff; --ink:#1c2024; --muted:#6b7280; --line:#e3e6ea;
+  --accent:#2563eb; --gl:#16a34a; --dev:#2563eb; --park:#d97706; --kill:#dc2626;
+  --old:#dc2626; --stale:#d97706; --fresh:#16a34a; --never:#9ca3af;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1216; --panel:#161a20; --ink:#e6e8eb; --muted:#9199a4; --line:#262c34;
+  --accent:#5b9bff;
+}}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent)}
+code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  background:rgba(127,127,127,.14);padding:.06em .35em;border-radius:4px}
+header.top{position:sticky;top:0;z-index:5;background:var(--panel);
+  border-bottom:1px solid var(--line);padding:14px 20px 0}
+h1{font-size:16px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:12px;margin-bottom:10px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-bottom:10px}
+.stats b{color:var(--ink)}
+nav{display:flex;gap:4px}
+nav button{appearance:none;border:1px solid var(--line);border-bottom:none;
+  background:transparent;color:var(--muted);padding:8px 14px;font-size:13px;
+  border-radius:8px 8px 0 0;cursor:pointer}
+nav button.on{background:var(--bg);color:var(--ink);font-weight:600}
+main{padding:18px 20px 60px;max-width:1280px}
+.panel[hidden]{display:none}
+h2.ptitle{font-size:14px;margin:0 0 12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.hint,.note-p{font-size:12px;color:var(--muted);margin:0 0 12px}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+
+/* board */
+.board{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
+.col{flex:0 0 270px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.col>header{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 12px;border-bottom:1px solid var(--line);font-weight:600;font-size:13px}
+.col>header .n{color:var(--muted);font-weight:500}
+.col-body{padding:10px;display:flex;flex-direction:column;gap:10px;min-height:40px}
+.empty{color:var(--muted);text-align:center;margin:6px 0}
+.card{border:1px solid var(--line);border-left:3px solid var(--never);
+  border-radius:8px;padding:10px;background:var(--bg)}
+.card.s-gl{border-left-color:var(--gl)} .card.s-dev{border-left-color:var(--dev)}
+.card.s-park{border-left-color:var(--park)} .card.s-kill{border-left-color:var(--kill)}
+.card-top{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.card-score{font-weight:700;color:var(--ink)}
+.card h4{font-size:13px;margin:4px 0 6px;line-height:1.35}
+.card-meta{font-size:11px;color:var(--muted)}
+.card-j{font-size:11px;margin-top:6px}
+.card-next{font-size:11px;margin-top:6px;color:var(--muted)}
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:999px;margin-top:8px}
+.tag-ex{background:rgba(217,119,6,.18);color:var(--park)}
+
+/* grids */
+table.grid{border-collapse:collapse;width:100%;font-size:12.5px}
+table.grid th,table.grid td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.grid th{position:sticky;top:0;background:var(--panel);font-size:11px;
+  text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+table.grid td.c{text-align:center}
+.t-label{font-weight:600;margin-bottom:2px}
+.age-old{color:var(--old);font-weight:600}
+.age-stale{color:var(--stale)}
+.age-fresh{color:var(--fresh)}
+.age-never{color:var(--never);font-weight:600}
+td.tbd{color:var(--park);font-weight:600}
+td.stale,td .stale{color:var(--old);font-weight:600}
+td.apc{color:var(--park)}
+.jname{font-weight:600}
+.jname .pub{display:block;font-weight:400;color:var(--muted);font-size:11px}
+td.note{max-width:280px;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.filters input[type=search],.filters select{padding:6px 8px;border:1px solid var(--line);
+  border-radius:7px;background:var(--panel);color:var(--ink);font-size:12.5px}
+.filters input[type=search]{min-width:240px}
+.filters label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.jcount{font-size:12px;color:var(--muted);margin-left:auto}
+
+/* digest */
+.digest-pick{margin-bottom:14px}
+.digest-pick select{padding:6px 8px;border:1px solid var(--line);border-radius:7px;
+  background:var(--panel);color:var(--ink)}
+.md-body{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:20px 26px;max-width:860px}
+.md-body h1{font-size:19px;margin:.2em 0 .5em}
+.md-body h2{font-size:16px;margin:1.4em 0 .5em;padding-bottom:.2em;border-bottom:1px solid var(--line)}
+.md-body h3{font-size:14px;margin:1.2em 0 .4em}
+.md-body table{border-collapse:collapse;width:100%;font-size:12.5px;margin:.6em 0}
+.md-body th,.md-body td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+.md-body blockquote{margin:.6em 0;padding:.2em 0 .2em 14px;border-left:3px solid var(--line);color:var(--muted)}
+.md-body hr{border:none;border-top:1px solid var(--line);margin:1.4em 0}
+.md-body ul,.md-body ol{padding-left:22px}
+.md-body li{margin:.25em 0}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Sunscreen &amp; Photoprotection Pipeline</h1>
+  <div class="sub">Read-only view &middot; generated 2026-09-05 21:18 &middot; run
+    <code>python3 scripts/build-dashboard.py</code> to refresh</div>
+  <div class="stats">
+    <span><b>0</b> ideas (0 active)</span>
+    <span><b>61</b> journal rows &middot; <b>49</b> with TBD &middot; <b>61</b> stale IFA</span>
+    <span><b>16</b> topics &middot; <b>13</b> never reviewed</span>
+    <span><b>1</b> digests &middot; latest 2026-09-06</span>
+  </div>
+  <nav>
+    <button data-panel="panel-board">Pipeline board</button>
+    <button data-panel="panel-digest">Latest digest</button>
+    <button data-panel="panel-white">Topic white-space</button>
+    <button data-panel="panel-journals">Journal targeting</button>
+  </nav>
+</header>
+<main>
+  <section id="panel-board" class="panel">
+    <h2 class="ptitle">Pipeline board &mdash; ideas/backlog.csv by status</h2>
+    <div class="board">
+        <section class="col">
+          <header><span>Idea</span><span class="n">2</span></header>
+          <div class="col-body">
+          <article class="card s-gl">
+            <div class="card-top">
+              <span class="card-id">EX-2</span>
+              <span class="card-score">4.4</span>
+            </div>
+            <h4>Anti-sunscreen misinformation on short-form video: a call for coordinated dermatology response</h4>
+            <div class="card-meta">misinformation-public-health &middot; Viewpoint</div>
+            <div class="card-j">▸ JAMA Dermatology → Journal of the American Academy of Dermatology → Australasian Journal of Dermatology</div>
+            <div class="card-next"><b>Next:</b> Draft 1000-word outline to JAMA Derm Viewpoint spec</div>
+            <span class="tag tag-ex">example</span>
+          </article>
+          <article class="card s-gl">
+            <div class="card-top">
+              <span class="card-id">EX-1</span>
+              <span class="card-score">4.0</span>
+            </div>
+            <h4>Visible-light photoprotection endpoints in melasma: what the trials actually measured</h4>
+            <div class="card-meta">visible-light-hev &middot; Review</div>
+            <div class="card-j">▸ Journal of Cosmetic Dermatology → Photodermatology, Photoimmunology &amp; Photomedicine → International Journal of Dermatology</div>
+            <div class="card-next"><b>Next:</b> Pre-pitch editor with scope + proposed length</div>
+            <span class="tag tag-ex">example</span>
+          </article></div>
+        </section></div>
+  </section>
+  <section id="panel-digest" class="panel">
+    <h2 class="ptitle">Latest digest &mdash; digests/</h2>
+    <div class="digest-pick">Digest: <select id="digestPick"><option value="2026-09-06">2026-09-06</option></select> &nbsp;<span class=note-p>2026-08-23 → 2026-09-06</span></div><div id="digestBody" class="md-body"></div>
+  </section>
+  <section id="panel-white" class="panel">
+    <h2 class="ptitle">Topic white-space &mdash; taxonomy/topics.yaml</h2>
+    
+      <p class="hint">White space = <span class="age-old">last reviewed &gt;90d / never</span> ·
+        few known reviews · no backlog idea yet. "In latest digest" counts ranked-idea
+        <code>**Topic:**</code> mentions.</p>
+      <div class="scroll">
+        <table class="grid">
+          <thead><tr>
+            <th>Topic</th><th>Last reviewed</th><th>Known reviews</th>
+            <th>Backlog ideas</th><th>In latest digest</th>
+          </tr></thead>
+          <tbody>
+        <tr>
+          <td><div class="t-label">UV filters &amp; US/EU regulatory gap; next-generation filters</div><code>uv-filters-regulatory</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c"><b>2</b></td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Systemic absorption, endocrine questions, benzene/nitrosamine contamination</div><code>systemic-absorption-safety</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c"><b>1</b></td>
+        </tr>
+        <tr>
+          <td><div class="t-label">SPF / UVA test methods, ISO standards, SPF&gt;50 debate, photostability</div><code>spf-testing-metrology</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Visible light / HEV / blue light; iron oxides; tinted sunscreen</div><code>visible-light-hev</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Photoprotection in skin of color; pigmentary disorders</div><code>photoprotection-skin-of-color</code></td>
+          <td class="c age-fresh">2026-09-06 &middot; -1d</td>
+          <td class="c">1</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Oral / nutritional photoprotection (Polypodium, nicotinamide, carotenoids)</div><code>oral-systemic-photoprotection</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Topical antioxidants; DNA-repair enzymes; photolyase</div><code>antioxidants-dna-repair</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Sunscreen &amp; skin cancer / actinic keratosis prevention evidence</div><code>skin-cancer-prevention</code></td>
+          <td class="c age-fresh">2026-09-06 &middot; -1d</td>
+          <td class="c">1</td>
+          <td class="c">0</td>
+          <td class="c"><b>1</b></td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Photoaging; infrared-A; air pollution &amp; the exposome</div><code>photoaging-infrared-pollution</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Application amount, reapplication, adherence, real-world effectiveness</div><code>behavior-adherence-application</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c"><b>1</b></td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Sunscreen in infants, children, and pregnancy</div><code>pediatric-pregnancy</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c"><b>1</b></td>
+        </tr>
+        <tr>
+          <td><div class="t-label">UV filters &amp; the marine environment; coral reef; ecotoxicology; bans</div><code>environmental-reef</code></td>
+          <td class="c age-fresh">2026-09-06 &middot; -1d</td>
+          <td class="c">1</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Sunscreen use and vitamin D status</div><code>vitamin-d-tradeoff</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Sunscreen misinformation, social media, and sun-seeking trends</div><code>misinformation-public-health</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c"><b>1</b></td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Photodermatoses, drug-induced photosensitivity, cutaneous lupus</div><code>photodermatoses-drug-photosensitivity</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr>
+        <tr>
+          <td><div class="t-label">Formulation &amp; vehicle (spray, powder, stick), photostability, mineral filters</div><code>formulation-vehicle-photostability</code></td>
+          <td class="c age-never">never</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+          <td class="c">0</td>
+        </tr></tbody>
+        </table>
+      </div>
+  </section>
+  <section id="panel-journals" class="panel">
+    <h2 class="ptitle">Journal targeting &mdash; journals/journals.csv</h2>
+    
+      <div class="filters">
+        <input type="search" id="jq" placeholder="Search journal / notes / publisher…">
+        <select id="jtype"><option value="">All article types</option><option value="Brief Report / Case">Brief Report / Case</option><option value="Brief Report / Short Communication">Brief Report / Short Communication</option><option value="Case Report">Case Report</option><option value="Case Report / Letter">Case Report / Letter</option><option value="Clinicopathological Challenge">Clinicopathological Challenge</option><option value="Concise Communication">Concise Communication</option><option value="Letter / Case">Letter / Case</option><option value="Letter to the Editor">Letter to the Editor</option><option value="Letter: Notes &amp; Comments">Letter: Notes &amp; Comments</option><option value="Original Article">Original Article</option><option value="Original Investigation">Original Investigation</option><option value="Original Paper">Original Paper</option><option value="Original Research">Original Research</option><option value="Photo Challenge / Case">Photo Challenge / Case</option><option value="Report / Case">Report / Case</option><option value="Research Letter">Research Letter</option><option value="Research Paper">Research Paper</option><option value="Review">Review</option><option value="Review / CME">Review / CME</option><option value="Review / Perspective">Review / Perspective</option><option value="Systematic Review">Systematic Review</option><option value="Systematic Review / Meta-analysis">Systematic Review / Meta-analysis</option><option value="Viewpoint">Viewpoint</option></select>
+        <label><input type="checkbox" id="jtbd"> only rows with TBD specs</label>
+        <label><input type="checkbox" id="jstale"> only stale IFA (&gt;90d / never)</label>
+        <span id="jcount" class="jcount"></span>
+      </div>
+      <div class="scroll">
+        <table class="grid" id="jtable">
+          <thead><tr>
+            <th>Journal</th><th>Article type</th><th>Unsol.</th><th>Body w</th>
+            <th>Abs w</th><th>Refs</th><th>Figs/Tbl</th><th>Checklist</th>
+            <th>APC</th><th>Fit</th><th>IFA checked</th><th>Notes</th>
+          </tr></thead>
+          <tbody>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="0" data-search="photodermatology, photoimmunology &amp; photomedicine original article wiley european society for photodermatology abstract structured background/purpose, methods, results, conclusion (&lt;=250 w). no firm main-text word cap stated - verify. niche home journal for photoprotection.">
+          <td class="jname">Photodermatology, Photoimmunology &amp; Photomedicine<span class="pub">Wiley</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td>250</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE (obs) / CONSORT (RCT)</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Abstract structured Background/purpose, Methods, Results, Conclusion (&lt;=250 w). No firm main-text word cap stated - verify. Niche home journal for photoprotection.">Abstract structured Background/purpose, Methods, Results, Conclusion (&lt;=250 w). No firm main-text word cap stated - verify. Nic…</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="0" data-search="photodermatology, photoimmunology &amp; photomedicine review wiley european society for photodermatology pre-pitch narrative reviews. invited commentary/editorial = 2000 w incl abstract + legends">
+          <td class="jname">Photodermatology, Photoimmunology &amp; Photomedicine<span class="pub">Wiley</span></td>
+          <td>Review</td>
+          <td class="c">check with editor</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic; register PROSPERO</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Pre-pitch narrative reviews. Invited Commentary/Editorial = 2000 w incl abstract + legends">Pre-pitch narrative reviews. Invited Commentary/Editorial = 2000 w incl abstract + legends</td>
+        </tr>
+        <tr data-type="Letter to the Editor" data-tbd="0"
+            data-stale="0" data-search="photodermatology, photoimmunology &amp; photomedicine letter to the editor wiley european society for photodermatology letter &lt;=1000 words including references; &lt;=10 refs; &lt;=2 figures+tables total. good for photoallergy / photodermatoses cases.">
+          <td class="jname">Photodermatology, Photoimmunology &amp; Photomedicine<span class="pub">Wiley</span></td>
+          <td>Letter to the Editor</td>
+          <td class="c">yes</td>
+          <td>1000</td>
+          <td>0</td>
+          <td>10</td>
+          <td>2</td>
+          <td>CARE (if case)</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Letter &lt;=1000 words INCLUDING references; &lt;=10 refs; &lt;=2 figures+tables total. Good for photoallergy / photodermatoses cases.">Letter &lt;=1000 words INCLUDING references; &lt;=10 refs; &lt;=2 figures+tables total. Good for photoallergy / photodermatoses cases.</td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="0"
+            data-stale="0" data-search="journal of the american academy of dermatology original article elsevier american academy of dermatology body &lt;=2500 w excl abstract/refs/figures/tables; abstract &lt;=200 w; capsule summary &lt;=50 w (prose - what was known / what this adds / implications) required. figures+tables &lt;=5 total - each panel of a multi-part figure counts, composite figures may not contain clinical images. references uncapped. also covers from the dermatology foundation / dermatologic surgery / dermatopathology. gold oa fee usd 4200 (25% off for dues-paying aad members); subscription route has no fee. ai barred as author; disclose generative-ai writing use in a &#x27;declaration of generative ai and ai-assisted technologies&#x27; section before references.">
+          <td class="jname">Journal of the American Academy of Dermatology<span class="pub">Elsevier</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td>2500</td>
+          <td>200</td>
+          <td>no limit</td>
+          <td>5</td>
+          <td>STROBE (obs) / CONSORT (RCT); CONSORT-AI + CLEAR Derm for AI papers</td>
+          <td class="">4200</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Body &lt;=2500 w excl abstract/refs/figures/tables; abstract &lt;=200 w; Capsule Summary &lt;=50 w (prose - what was known / what this adds / implications) required. Figures+tables &lt;=5 total - each panel of a multi-part figure counts, composite figures may not contain clinical images. References uncapped. Also covers From the Dermatology Foundation / Dermatologic Surgery / Dermatopathology. Gold OA fee USD 4200 (25% off for dues-paying AAD members); subscription route has no fee. AI barred as author; disclose generative-AI writing use in a &#x27;Declaration of Generative AI and AI-assisted technologies&#x27; section before References.">Body &lt;=2500 w excl abstract/refs/figures/tables; abstract &lt;=200 w; Capsule Summary &lt;=50 w (prose - what was known / what this a…</td>
+        </tr>
+        <tr data-type="Review / CME" data-tbd="0"
+            data-stale="0" data-search="journal of the american academy of dermatology review / cme elsevier american academy of dermatology proposal required before submission: clinical review = 1-page proposal form; cme = part i + part ii proposal worksheets + outlines approved by the cme planning workgroup &amp; deputy editor. cme 3000 w per part, abstract required, no reference/figure limit. clinical review 2500 w, abstract + 50-w capsule summary, &lt;=5 figures/tables. full-length narrative reviews are essentially all invited - unsolicited review work goes in the 500-w systematic review format or to jaad reviews (2500 w).">
+          <td class="jname">Journal of the American Academy of Dermatology<span class="pub">Elsevier</span></td>
+          <td>Review / CME</td>
+          <td class="c">mostly invited</td>
+          <td>3000</td>
+          <td class="tbd">TBD</td>
+          <td>no limit</td>
+          <td>5</td>
+          <td>PRISMA if systematic</td>
+          <td class="">4200</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Proposal required BEFORE submission: Clinical Review = 1-page proposal form; CME = Part I + Part II proposal worksheets + outlines approved by the CME Planning Workgroup &amp; Deputy Editor. CME 3000 w PER PART, abstract required, no reference/figure limit. Clinical Review 2500 w, abstract + 50-w capsule summary, &lt;=5 figures/tables. Full-length narrative reviews are essentially all invited - unsolicited review work goes in the 500-w Systematic Review format or to JAAD Reviews (2500 w).">Proposal required BEFORE submission: Clinical Review = 1-page proposal form; CME = Part I + Part II proposal worksheets + outli…</td>
+        </tr>
+        <tr data-type="Systematic Review / Meta-analysis" data-tbd="0"
+            data-stale="0" data-search="journal of the american academy of dermatology systematic review / meta-analysis elsevier american academy of dermatology unsolicited systematic reviews &amp; meta-analyses run in jaad&#x27;s letter format: &lt;=500 w, &lt;=5 refs, &lt;=2 figures/tables, no abstract, online only. no references allowed in in-manuscript tables; the full included-studies table goes to mendeley supplemental with a link in the print article. for a full-length treatment submit to jaad reviews instead (2500 w).">
+          <td class="jname">Journal of the American Academy of Dermatology<span class="pub">Elsevier</span></td>
+          <td>Systematic Review / Meta-analysis</td>
+          <td class="c">yes</td>
+          <td>500</td>
+          <td>0</td>
+          <td>5</td>
+          <td>2</td>
+          <td>PRISMA 2020 (register PROSPERO)</td>
+          <td class="">4200</td>
+          <td class="c">4</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Unsolicited systematic reviews &amp; meta-analyses run in JAAD&#x27;s letter format: &lt;=500 w, &lt;=5 refs, &lt;=2 figures/tables, NO abstract, online only. No references allowed in in-manuscript tables; the full included-studies table goes to Mendeley supplemental with a link in the print article. For a full-length treatment submit to JAAD Reviews instead (2500 w).">Unsolicited systematic reviews &amp; meta-analyses run in JAAD&#x27;s letter format: &lt;=500 w, &lt;=5 refs, &lt;=2 figures/tables, NO abstract,…</td>
+        </tr>
+        <tr data-type="Research Letter" data-tbd="0"
+            data-stale="0" data-search="journal of the american academy of dermatology research letter elsevier american academy of dermatology &lt;=500 w, &lt;=5 refs, &lt;=2 figures/tables total, no abstract or capsule summary, online only. fast route for focused datasets and observations. editor enforces the limits strictly - no exceptions - so put any overflow in supplemental material.">
+          <td class="jname">Journal of the American Academy of Dermatology<span class="pub">Elsevier</span></td>
+          <td>Research Letter</td>
+          <td class="c">yes</td>
+          <td>500</td>
+          <td>0</td>
+          <td>5</td>
+          <td>2</td>
+          <td>per underlying study type</td>
+          <td class="">4200</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="&lt;=500 w, &lt;=5 refs, &lt;=2 figures/tables total, no abstract or capsule summary, online only. Fast route for focused datasets and observations. Editor enforces the limits strictly - no exceptions - so put any overflow in supplemental material.">&lt;=500 w, &lt;=5 refs, &lt;=2 figures/tables total, no abstract or capsule summary, online only. Fast route for focused datasets and o…</td>
+        </tr>
+        <tr data-type="Letter: Notes &amp; Comments" data-tbd="0"
+            data-stale="0" data-search="journal of the american academy of dermatology letter: notes &amp; comments elsevier american academy of dermatology &lt;=500 w, &lt;=5 refs, &lt;=2 figures/tables, no abstract, online only. commentary on recently published jaad articles or brief standalone observations. shares the 500-w bucket with editorials/commentary, health policy &amp; practice, current issues &amp; opinion and controversies (controversies needs a paired pre-submission proposal).">
+          <td class="jname">Journal of the American Academy of Dermatology<span class="pub">Elsevier</span></td>
+          <td>Letter: Notes &amp; Comments</td>
+          <td class="c">yes</td>
+          <td>500</td>
+          <td>0</td>
+          <td>5</td>
+          <td>2</td>
+          <td>per underlying study type</td>
+          <td class="">4200</td>
+          <td class="c">4</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="&lt;=500 w, &lt;=5 refs, &lt;=2 figures/tables, no abstract, online only. Commentary on recently published JAAD articles or brief standalone observations. Shares the 500-w bucket with Editorials/Commentary, Health Policy &amp; Practice, Current Issues &amp; Opinion and Controversies (Controversies needs a paired pre-submission proposal).">&lt;=500 w, &lt;=5 refs, &lt;=2 figures/tables, no abstract, online only. Commentary on recently published JAAD articles or brief standa…</td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="jaad international original article elsevier american academy of dermatology open-access sister journal; ~2500 w cap like jaad. global-health / population angle welcome.">
+          <td class="jname">JAAD International<span class="pub">Elsevier</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td>2500</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="apc">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title="Open-access sister journal; ~2500 w cap like JAAD. Global-health / population angle welcome.">Open-access sister journal; ~2500 w cap like JAAD. Global-health / population angle welcome.</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="jaad international review elsevier american academy of dermatology ">
+          <td class="jname">JAAD International<span class="pub">Elsevier</span></td>
+          <td>Review</td>
+          <td class="c">check with editor</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="apc">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Case Report" data-tbd="1"
+            data-stale="1" data-search="jaad case reports case report elsevier american academy of dermatology indexed case-report outlet; good for teaching images with photoprotection relevance.">
+          <td class="jname">JAAD Case Reports<span class="pub">Elsevier</span></td>
+          <td>Case Report</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>CARE</td>
+          <td class="apc">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title="Indexed case-report outlet; good for teaching images with photoprotection relevance.">Indexed case-report outlet; good for teaching images with photoprotection relevance.</td>
+        </tr>
+        <tr data-type="Original Investigation" data-tbd="0"
+            data-stale="0" data-search="jama dermatology original investigation american medical association n/a refs 50-75. figs+tables &lt;=5. .docx only, double-spaced. data sharing statement required. title &lt;=100 chars.">
+          <td class="jname">JAMA Dermatology<span class="pub">American Medical Association</span></td>
+          <td>Original Investigation</td>
+          <td class="c">yes</td>
+          <td>3000</td>
+          <td>350</td>
+          <td>75</td>
+          <td>5</td>
+          <td>CONSORT / STROBE / STARD (EQUATOR)</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Refs 50-75. Figs+tables &lt;=5. .docx only, double-spaced. Data Sharing Statement required. Title &lt;=100 chars.">Refs 50-75. Figs+tables &lt;=5. .docx only, double-spaced. Data Sharing Statement required. Title &lt;=100 chars.</td>
+        </tr>
+        <tr data-type="Systematic Review" data-tbd="0"
+            data-stale="0" data-search="jama dermatology systematic review american medical association n/a refs 50-75; figs+tables &lt;=5. narrative reviews are mostly invited; systematic review (without meta-analysis) accepted unsolicited.">
+          <td class="jname">JAMA Dermatology<span class="pub">American Medical Association</span></td>
+          <td>Systematic Review</td>
+          <td class="c">yes</td>
+          <td>3000</td>
+          <td>350</td>
+          <td>75</td>
+          <td>5</td>
+          <td>PRISMA</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Refs 50-75; figs+tables &lt;=5. Narrative reviews are mostly invited; systematic review (without meta-analysis) accepted unsolicited.">Refs 50-75; figs+tables &lt;=5. Narrative reviews are mostly invited; systematic review (without meta-analysis) accepted unsolicited.</td>
+        </tr>
+        <tr data-type="Viewpoint" data-tbd="0"
+            data-stale="0" data-search="jama dermatology viewpoint american medical association n/a 1200 w max (1000 if including 1 small table/figure). &lt;=7 refs. ai/llm may not draft opinion pieces. best fit for misinformation / regulation / policy pieces.">
+          <td class="jname">JAMA Dermatology<span class="pub">American Medical Association</span></td>
+          <td>Viewpoint</td>
+          <td class="c">yes</td>
+          <td>1200</td>
+          <td>0</td>
+          <td>7</td>
+          <td>1</td>
+          <td>none</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="1200 w max (1000 if including 1 small table/figure). &lt;=7 refs. AI/LLM may NOT draft opinion pieces. Best fit for misinformation / regulation / policy pieces.">1200 w max (1000 if including 1 small table/figure). &lt;=7 refs. AI/LLM may NOT draft opinion pieces. Best fit for misinformation…</td>
+        </tr>
+        <tr data-type="Research Letter" data-tbd="0"
+            data-stale="0" data-search="jama dermatology research letter american medical association n/a 800 w max; &lt;=10 refs; &lt;=2 small figs/tables. concise novel findings.">
+          <td class="jname">JAMA Dermatology<span class="pub">American Medical Association</span></td>
+          <td>Research Letter</td>
+          <td class="c">yes</td>
+          <td>800</td>
+          <td>0</td>
+          <td>10</td>
+          <td>2</td>
+          <td>per underlying study type</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="800 w max; &lt;=10 refs; &lt;=2 small figs/tables. Concise novel findings.">800 w max; &lt;=10 refs; &lt;=2 small figs/tables. Concise novel findings.</td>
+        </tr>
+        <tr data-type="Clinicopathological Challenge" data-tbd="0"
+            data-stale="0" data-search="jama dermatology clinicopathological challenge american medical association n/a 850 w (250 case + 600 discussion); patient permission form required.">
+          <td class="jname">JAMA Dermatology<span class="pub">American Medical Association</span></td>
+          <td>Clinicopathological Challenge</td>
+          <td class="c">yes</td>
+          <td>850</td>
+          <td>0</td>
+          <td>10</td>
+          <td>2</td>
+          <td>none</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="850 w (250 case + 600 discussion); patient permission form required.">850 w (250 case + 600 discussion); patient permission form required.</td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="0" data-search="british journal of dermatology original article oxford university press british association of dermatologists 3000 w (4000 qualitative). plain language summary + &#x27;what&#x27;s known / what this adds&#x27; required. orcid required from aug 2026; ai disclosure from aug 2025.">
+          <td class="jname">British Journal of Dermatology<span class="pub">Oxford University Press</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td>3000</td>
+          <td>350</td>
+          <td class="tbd">TBD</td>
+          <td>6 panels/figure</td>
+          <td>CONSORT / STROBE / TRIPOD / PRISMA / ARRIVE / CARE (EQUATOR)</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="3000 w (4000 qualitative). Plain Language Summary + &#x27;What&#x27;s known / What this adds&#x27; required. ORCID required from Aug 2026; AI disclosure from Aug 2025.">3000 w (4000 qualitative). Plain Language Summary + &#x27;What&#x27;s known / What this adds&#x27; required. ORCID required from Aug 2026; AI …</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="0" data-search="british journal of dermatology review oxford university press british association of dermatologists narrative reviews &#x27;solicited or submitted&#x27;. systematic reviews (evidence-based dermatology): 3000 w, structured, prospero registration compulsory.">
+          <td class="jname">British Journal of Dermatology<span class="pub">Oxford University Press</span></td>
+          <td>Review</td>
+          <td class="c">check with editor</td>
+          <td>3000</td>
+          <td>350</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>none (narrative); PRISMA/PROSPERO if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Narrative reviews &#x27;solicited or submitted&#x27;. Systematic reviews (Evidence-Based Dermatology): 3000 w, structured, PROSPERO registration compulsory.">Narrative reviews &#x27;solicited or submitted&#x27;. Systematic reviews (Evidence-Based Dermatology): 3000 w, structured, PROSPERO regis…</td>
+        </tr>
+        <tr data-type="Research Letter" data-tbd="0"
+            data-stale="0" data-search="british journal of dermatology research letter oxford university press british association of dermatologists 750 w max; &lt;=8 refs; no subheadings. bjd calls this &#x27;the most prestigious form of bjd correspondence&#x27;. image correspondence = &lt;=100 w caption, &lt;=2 refs, &lt;=3 panels.">
+          <td class="jname">British Journal of Dermatology<span class="pub">Oxford University Press</span></td>
+          <td>Research Letter</td>
+          <td class="c">yes</td>
+          <td>750</td>
+          <td>0</td>
+          <td>8</td>
+          <td>2 small figs (&lt;=4 panels ea) OR 1 table + 1 fig</td>
+          <td>appropriate EQUATOR guideline by design</td>
+          <td class="">TBD</td>
+          <td class="c">5</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="750 w max; &lt;=8 refs; no subheadings. BJD calls this &#x27;the most prestigious form of BJD correspondence&#x27;. Image Correspondence = &lt;=100 w caption, &lt;=2 refs, &lt;=3 panels.">750 w max; &lt;=8 refs; no subheadings. BJD calls this &#x27;the most prestigious form of BJD correspondence&#x27;. Image Correspondence = &lt;…</td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="journal of investigative dermatology original article elsevier society for investigative dermatology mechanistic photobiology / uv dna damage / immunology.">
+          <td class="jname">Journal of Investigative Dermatology<span class="pub">Elsevier</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT / ARRIVE (animal)</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title="Mechanistic photobiology / UV DNA damage / immunology.">Mechanistic photobiology / UV DNA damage / immunology.</td>
+        </tr>
+        <tr data-type="Letter to the Editor" data-tbd="1"
+            data-stale="1" data-search="journal of investigative dermatology letter to the editor elsevier society for investigative dermatology ">
+          <td class="jname">Journal of Investigative Dermatology<span class="pub">Elsevier</span></td>
+          <td>Letter to the Editor</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>per underlying study type</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="jid innovations original article elsevier society for investigative dermatology open-access; methods and translational work.">
+          <td class="jname">JID Innovations<span class="pub">Elsevier</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="apc">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="Open-access; methods and translational work.">Open-access; methods and translational work.</td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="journal of the european academy of dermatology and venereology original article wiley european academy of dermatology and venereology large european readership. verify word/reference caps.">
+          <td class="jname">Journal of the European Academy of Dermatology and Venereology<span class="pub">Wiley</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title="Large European readership. Verify word/reference caps.">Large European readership. Verify word/reference caps.</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="journal of the european academy of dermatology and venereology review wiley european academy of dermatology and venereology ">
+          <td class="jname">Journal of the European Academy of Dermatology and Venereology<span class="pub">Wiley</span></td>
+          <td>Review</td>
+          <td class="c">check with editor</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Letter to the Editor" data-tbd="1"
+            data-stale="1" data-search="journal of the european academy of dermatology and venereology letter to the editor wiley european academy of dermatology and venereology one continuous section">
+          <td class="jname">Journal of the European Academy of Dermatology and Venereology<span class="pub">Wiley</span></td>
+          <td>Letter to the Editor</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>per underlying study type</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title="One continuous section">One continuous section</td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="international journal of dermatology original article wiley international society of dermatology ~3000 w original cap (verify). global scope; skin-of-color photoprotection welcome.">
+          <td class="jname">International Journal of Dermatology<span class="pub">Wiley</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td>3000</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title="~3000 w original cap (verify). Global scope; skin-of-color photoprotection welcome.">~3000 w original cap (verify). Global scope; skin-of-color photoprotection welcome.</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="international journal of dermatology review wiley international society of dermatology ">
+          <td class="jname">International Journal of Dermatology<span class="pub">Wiley</span></td>
+          <td>Review</td>
+          <td class="c">check with editor</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Report / Case" data-tbd="1"
+            data-stale="1" data-search="international journal of dermatology report / case wiley international society of dermatology ">
+          <td class="jname">International Journal of Dermatology<span class="pub">Wiley</span></td>
+          <td>Report / Case</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>CARE</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Research" data-tbd="1"
+            data-stale="0" data-search="dermatology and therapy original research adis / springer nature n/a mandatory rapid service fee ~$7675 / eur 5950 / gbp 5120 on acceptance. ~2-week review, 3-4 wk to online. cost may outweigh speed for you.">
+          <td class="jname">Dermatology and Therapy<span class="pub">Adis / Springer Nature</span></td>
+          <td>Original Research</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="apc">7675</td>
+          <td class="c">4</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="MANDATORY Rapid Service Fee ~$7675 / EUR 5950 / GBP 5120 on acceptance. ~2-week review, 3-4 wk to online. Cost may outweigh speed for you.">MANDATORY Rapid Service Fee ~$7675 / EUR 5950 / GBP 5120 on acceptance. ~2-week review, 3-4 wk to online. Cost may outweigh spe…</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="0" data-search="dermatology and therapy review adis / springer nature n/a unsolicited narrative reviews accepted - but same ~$7675 mandatory fee applies.">
+          <td class="jname">Dermatology and Therapy<span class="pub">Adis / Springer Nature</span></td>
+          <td>Review</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="apc">7675</td>
+          <td class="c">4</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Unsolicited narrative reviews accepted - but same ~$7675 mandatory fee applies.">Unsolicited narrative reviews accepted - but same ~$7675 mandatory fee applies.</td>
+        </tr>
+        <tr data-type="Brief Report / Short Communication" data-tbd="1"
+            data-stale="0" data-search="dermatology and therapy brief report / short communication adis / springer nature n/a also publishes case reports/series and trial protocols. same mandatory fee.">
+          <td class="jname">Dermatology and Therapy<span class="pub">Adis / Springer Nature</span></td>
+          <td>Brief Report / Short Communication</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>per underlying study type</td>
+          <td class="apc">7675</td>
+          <td class="c">4</td>
+          <td class="">2026-09-05</td>
+          <td class="note" title="Also publishes case reports/series and trial protocols. Same mandatory fee.">Also publishes case reports/series and trial protocols. Same mandatory fee.</td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="journal of drugs in dermatology original article sanovaworks n/a practical / therapeutics focus; formulation and product-comparison studies.">
+          <td class="jname">Journal of Drugs in Dermatology<span class="pub">SanovaWorks</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title="Practical / therapeutics focus; formulation and product-comparison studies.">Practical / therapeutics focus; formulation and product-comparison studies.</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="journal of drugs in dermatology review sanovaworks n/a ">
+          <td class="jname">Journal of Drugs in Dermatology<span class="pub">SanovaWorks</span></td>
+          <td>Review</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Case Report" data-tbd="1"
+            data-stale="1" data-search="journal of drugs in dermatology case report sanovaworks n/a ">
+          <td class="jname">Journal of Drugs in Dermatology<span class="pub">SanovaWorks</span></td>
+          <td>Case Report</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>CARE</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="dermatologic therapy original article wiley n/a check current indexing status before submitting.">
+          <td class="jname">Dermatologic Therapy<span class="pub">Wiley</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="Check current indexing status before submitting.">Check current indexing status before submitting.</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="dermatologic therapy review wiley n/a ">
+          <td class="jname">Dermatologic Therapy<span class="pub">Wiley</span></td>
+          <td>Review</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="journal of cosmetic dermatology original article wiley n/a cosmetic elegance">
+          <td class="jname">Journal of Cosmetic Dermatology<span class="pub">Wiley</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title="Cosmetic elegance">Cosmetic elegance</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="journal of cosmetic dermatology review wiley n/a ">
+          <td class="jname">Journal of Cosmetic Dermatology<span class="pub">Wiley</span></td>
+          <td>Review</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Research" data-tbd="1"
+            data-stale="1" data-search="clinical, cosmetic and investigational dermatology original research dove medical press / taylor &amp; francis n/a open access; confirm indexing and fit before submitting.">
+          <td class="jname">Clinical, Cosmetic and Investigational Dermatology<span class="pub">Dove Medical Press / Taylor &amp; Francis</span></td>
+          <td>Original Research</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="apc">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="Open access; confirm indexing and fit before submitting.">Open access; confirm indexing and fit before submitting.</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="clinical, cosmetic and investigational dermatology review dove medical press / taylor &amp; francis n/a ">
+          <td class="jname">Clinical, Cosmetic and Investigational Dermatology<span class="pub">Dove Medical Press / Taylor &amp; Francis</span></td>
+          <td>Review</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="apc">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Case Report" data-tbd="1"
+            data-stale="1" data-search="clinical, cosmetic and investigational dermatology case report dove medical press / taylor &amp; francis n/a ">
+          <td class="jname">Clinical, Cosmetic and Investigational Dermatology<span class="pub">Dove Medical Press / Taylor &amp; Francis</span></td>
+          <td>Case Report</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>CARE</td>
+          <td class="apc">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Paper" data-tbd="1"
+            data-stale="1" data-search="archives of dermatological research original paper springer nature n/a mix of clinical and experimental; mechanistic photoprotection.">
+          <td class="jname">Archives of Dermatological Research<span class="pub">Springer Nature</span></td>
+          <td>Original Paper</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT / ARRIVE</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="Mix of clinical and experimental; mechanistic photoprotection.">Mix of clinical and experimental; mechanistic photoprotection.</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="archives of dermatological research review springer nature n/a ">
+          <td class="jname">Archives of Dermatological Research<span class="pub">Springer Nature</span></td>
+          <td>Review</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Concise Communication" data-tbd="1"
+            data-stale="1" data-search="archives of dermatological research concise communication springer nature n/a ">
+          <td class="jname">Archives of Dermatological Research<span class="pub">Springer Nature</span></td>
+          <td>Concise Communication</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>per underlying study type</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="pediatric dermatology original article wiley society for pediatric dermatology photoprotection counseling">
+          <td class="jname">Pediatric Dermatology<span class="pub">Wiley</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="Photoprotection counseling">Photoprotection counseling</td>
+        </tr>
+        <tr data-type="Brief Report / Case" data-tbd="1"
+            data-stale="1" data-search="pediatric dermatology brief report / case wiley society for pediatric dermatology ">
+          <td class="jname">Pediatric Dermatology<span class="pub">Wiley</span></td>
+          <td>Brief Report / Case</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>CARE</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="contact dermatitis original article wiley european society of contact dermatitis photopatch testing">
+          <td class="jname">Contact Dermatitis<span class="pub">Wiley</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="Photopatch testing">Photopatch testing</td>
+        </tr>
+        <tr data-type="Case Report / Letter" data-tbd="1"
+            data-stale="1" data-search="contact dermatitis case report / letter wiley european society of contact dermatitis ">
+          <td class="jname">Contact Dermatitis<span class="pub">Wiley</span></td>
+          <td>Case Report / Letter</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>CARE</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="skin research and technology original article wiley international society for biophysics and imaging of the skin bioengineering endpoints; in vitro spf">
+          <td class="jname">Skin Research and Technology<span class="pub">Wiley</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="Bioengineering endpoints; in vitro SPF">Bioengineering endpoints; in vitro SPF</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="skin research and technology review wiley international society for biophysics and imaging of the skin ">
+          <td class="jname">Skin Research and Technology<span class="pub">Wiley</span></td>
+          <td>Review</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="photochemical &amp; photobiological sciences original article springer nature european photochemistry assoc / european society for photobiology photophysics / photochemistry of filters; action spectra; photostability.">
+          <td class="jname">Photochemical &amp; Photobiological Sciences<span class="pub">Springer Nature</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>per underlying study type</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="Photophysics / photochemistry of filters; action spectra; photostability.">Photophysics / photochemistry of filters; action spectra; photostability.</td>
+        </tr>
+        <tr data-type="Review / Perspective" data-tbd="1"
+            data-stale="1" data-search="photochemical &amp; photobiological sciences review / perspective springer nature european photochemistry assoc / european society for photobiology ">
+          <td class="jname">Photochemical &amp; Photobiological Sciences<span class="pub">Springer Nature</span></td>
+          <td>Review / Perspective</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Research Paper" data-tbd="1"
+            data-stale="1" data-search="journal of photochemistry and photobiology b: biology research paper elsevier n/a biological effects of uv / photoprotective agents; mechanistic.">
+          <td class="jname">Journal of Photochemistry and Photobiology B: Biology<span class="pub">Elsevier</span></td>
+          <td>Research Paper</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>per underlying study type</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="Biological effects of UV / photoprotective agents; mechanistic.">Biological effects of UV / photoprotective agents; mechanistic.</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="journal of photochemistry and photobiology b: biology review elsevier n/a ">
+          <td class="jname">Journal of Photochemistry and Photobiology B: Biology<span class="pub">Elsevier</span></td>
+          <td>Review</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="australasian journal of dermatology original article wiley australasian college of dermatologists high-uv region; sun protection policy">
+          <td class="jname">Australasian Journal of Dermatology<span class="pub">Wiley</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title="High-UV region; sun protection policy">High-UV region; sun protection policy</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="australasian journal of dermatology review wiley australasian college of dermatologists ">
+          <td class="jname">Australasian Journal of Dermatology<span class="pub">Wiley</span></td>
+          <td>Review</td>
+          <td class="c">check with editor</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Letter / Case" data-tbd="1"
+            data-stale="1" data-search="australasian journal of dermatology letter / case wiley australasian college of dermatologists ">
+          <td class="jname">Australasian Journal of Dermatology<span class="pub">Wiley</span></td>
+          <td>Letter / Case</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>CARE</td>
+          <td class="">TBD</td>
+          <td class="c">4</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="cutis original article mjh life sciences n/a us practice-oriented readership; practical photoprotection and product topics.">
+          <td class="jname">Cutis<span class="pub">MJH Life Sciences</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>STROBE / CONSORT</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title="US practice-oriented readership; practical photoprotection and product topics.">US practice-oriented readership; practical photoprotection and product topics.</td>
+        </tr>
+        <tr data-type="Review" data-tbd="1"
+            data-stale="1" data-search="cutis review mjh life sciences n/a ">
+          <td class="jname">Cutis<span class="pub">MJH Life Sciences</span></td>
+          <td>Review</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>PRISMA if systematic</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Photo Challenge / Case" data-tbd="1"
+            data-stale="1" data-search="cutis photo challenge / case mjh life sciences n/a ">
+          <td class="jname">Cutis<span class="pub">MJH Life Sciences</span></td>
+          <td>Photo Challenge / Case</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>CARE</td>
+          <td class="">TBD</td>
+          <td class="c">3</td>
+          <td class="stale">never</td>
+          <td class="note" title=""></td>
+        </tr>
+        <tr data-type="Original Article" data-tbd="1"
+            data-stale="1" data-search="photodiagnosis and photodynamic therapy original article elsevier international photodynamic association peripheral fit; relevant for pdt-adjacent photoprotection or device work.">
+          <td class="jname">Photodiagnosis and Photodynamic Therapy<span class="pub">Elsevier</span></td>
+          <td>Original Article</td>
+          <td class="c">yes</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td class="tbd">TBD</td>
+          <td>per underlying study type</td>
+          <td class="">TBD</td>
+          <td class="c">2</td>
+          <td class="stale">never</td>
+          <td class="note" title="Peripheral fit; relevant for PDT-adjacent photoprotection or device work.">Peripheral fit; relevant for PDT-adjacent photoprotection or device work.</td>
+        </tr></tbody>
+        </table>
+      </div>
+  </section>
+</main>
+<script>window.DIGESTS={"2026-09-06": "<h1>Sunscreen &amp; Photoprotection Digest \u2014 2026-09-06<\/h1>\n<p>Window covered: 2026-08-23 \u2192 2026-09-06 Topics swept: 16 of 16 (PubMed E-utilities + OpenAlex) | New papers: 23 curated (screened ~230 raw records; most excluded as keyword-overlap noise \u2014 see per-topic notes) | Trend items: 5<\/p>\n<p><strong>Note on OpenAlex queries:<\/strong> the <code>openalex<\/code> strings in <code>taxonomy/topics.yaml<\/code> are long multi-word phrases, but OpenAlex's current search API treats <code>default.search<\/code>/<code>search<\/code> as a full-text AND-of-all-terms filter, not a relevance query \u2014 the literal strings returned 0 hits for 12 of 16 topics. This run substituted shortened 3\u20135 word core-term queries per topic to get usable recall. Recommend trimming the <code>openalex<\/code> field in <code>topics.yaml<\/code> to short phrases at the next taxonomy review.<\/p>\n<hr>\n<h2>1. Ranked manuscript ideas (this week)<\/h2>\n<blockquote><p>Cross-checked against <code>ideas/backlog.csv<\/code> \u2014 none of these duplicate EX-1 (visible-light/melasma trial-endpoints review) or EX-2 (TikTok misinformation coordinated-response viewpoint).<\/p><\/blockquote>\n<h3>Idea 1 \u2014 The first bemotrizinol sunscreen just hit US shelves: what should clinicians tell patients now?<\/h3>\n<ul><li><strong>Topic:<\/strong> uv-filters-regulatory<\/li><li><strong>Why now:<\/strong> FDA's Final Order (OTC000039, effective 2026-08-09) cleared bemotrizinol for US OTC sunscreens; Ultra Violette's \"Unblock Screen SPF 50\" became the first commercially available bemotrizinol sunscreen in the US on 2026-08-31, squarely inside this window. Extensive lay/patient-facing coverage already exists (AJMC, Stanford Report, Jane Yoo MD), but a PubMed/OpenAlex search this run found <strong>no dermatology-journal Viewpoint or clinical guidance piece yet<\/strong> \u2014 a real, fast-closing gap.<\/li><li><strong>Proposed article type:<\/strong> Viewpoint / Commentary (regulatory-gap track, per <code>matching/decision-tree.md<\/code>)<\/li><li><strong>Evidence needed:<\/strong> literature + regulatory record only<\/li><li><strong>Target journals:<\/strong> JAMA Dermatology (Viewpoint) \u2192 Journal of the American Academy of Dermatology (Notes &amp; Comments) \u2192 Photodermatology, Photoimmunology &amp; Photomedicine (Letter to the Editor)<\/li><li><strong>Budget:<\/strong> JAMA Derm Viewpoint \u2014 body \u22641200 w (\u22641000 w if incl. 1 table/figure), no abstract, \u22647 refs, \u22641 fig/table, <code>.docx<\/code> double-spaced. <strong>AI/LLM may not draft this opinion piece<\/strong> \u2014 outline only, write it yourself. JAAD Notes &amp; Comments row is <code>TBD<\/code> for word/ref caps (see Housekeeping).<\/li><li><strong>Rubric (quick):<\/strong> novelty 5 / feas 5 / impact 4 / vis 5 / fit 5 / risk 3 / effort 5 \u2192 <strong>4.65<\/strong><\/li><li><strong>First action:<\/strong> Re-check PubMed/Google for any dermatology-journal piece published in the last few days (this moves fast), then draft outline around FDA OTC000039, DSM-Firmenich's Parsol Shield, and the Ultra Violette launch.<\/li><\/ul>\n<h3>Idea 2 \u2014 Single-ingredient margin-of-safety math doesn't match real-world multi-filter sunscreens<\/h3>\n<ul><li><strong>Topic:<\/strong> systemic-absorption-safety (secondary: uv-filters-regulatory)<\/li><li><strong>Why now:<\/strong> Chowdhury &amp; Mizikovsky (<em>Toxicology Reports<\/em>, 2026-08-09) show Australian therapeutic sunscreens are multi-filter mixtures and argue single-ingredient margin-of-safety assessments understate real exposure. This lands right as a new filter (bemotrizinol) is about to be combined with existing filters in commercial formulations \u2014 a timely regulatory-science hook.<\/li><li><strong>Proposed article type:<\/strong> Viewpoint / Commentary<\/li><li><strong>Evidence needed:<\/strong> literature only<\/li><li><strong>Target journals:<\/strong> JAMA Dermatology (Viewpoint) \u2192 Journal of the American Academy of Dermatology (Notes &amp; Comments) \u2192 Australasian Journal of Dermatology (Letter/Case)<\/li><li><strong>Budget:<\/strong> JAMA Derm Viewpoint spec as above. JAAD and Australasian J Dermatol rows both <code>TBD<\/code> for word/ref caps (see Housekeeping).<\/li><li><strong>Rubric (quick):<\/strong> novelty 4 / feas 5 / impact 4 / vis 3 / fit 5 / risk 4 / effort 5 \u2192 <strong>4.35<\/strong><\/li><li><strong>First action:<\/strong> Pull the Chowdhury &amp; Mizikovsky full text (<a href=\"https://pubmed.ncbi.nlm.nih.gov/42633302/\" target=\"_blank\" rel=\"noopener\">PMID 42633302<\/a>) and check whether a similar critique exists for US/EU monograph filters.<\/li><\/ul>\n<h3>Idea 3 \u2014 If sun-protective behavior is partly heritable, what does that mean for counseling design?<\/h3>\n<ul><li><strong>Topic:<\/strong> behavior-adherence-application<\/li><li><strong>Why now:<\/strong> Reynolds, Tripathi &amp; Carroll (<em>JAAD<\/em>, ahead-of-print 2026-09-01, <a href=\"https://doi.org/10.1016/j.jaad.2026.08.116\" target=\"_blank\" rel=\"noopener\">DOI 10.1016/j.jaad.2026.08.116<\/a>) report a twin-cohort concordance study finding genetic and environmental contributions to sun-protection behavior \u2014 a novel design with direct implications for how public-health messaging should be targeted.<\/li><li><strong>Proposed article type:<\/strong> Viewpoint / Commentary<\/li><li><strong>Evidence needed:<\/strong> literature only<\/li><li><strong>Target journals:<\/strong> JAMA Dermatology (Viewpoint) \u2192 Journal of the American Academy of Dermatology (Notes &amp; Comments) \u2192 Australasian Journal of Dermatology (Letter/Case)<\/li><li><strong>Budget:<\/strong> JAMA Derm Viewpoint spec as above. JAAD/Australasian rows <code>TBD<\/code> (see Housekeeping).<\/li><li><strong>Rubric (quick):<\/strong> novelty 4 / feas 5 / impact 3 / vis 4 / fit 4 / risk 4 / effort 5 \u2192 <strong>4.20<\/strong><\/li><li><strong>First action:<\/strong> Confirm the Reynolds et al. paper's PubMed indexing (currently OpenAlex/ahead-of-print only) and read the full twin-cohort methodology before drafting.<\/li><\/ul>\n<h3>Idea 4 \u2014 Sunscreen attitudes are shaped by the comments, not just the content: an eye-tracking finding dermatology should know about<\/h3>\n<ul><li><strong>Topic:<\/strong> misinformation-public-health<\/li><li><strong>Why now:<\/strong> Chen, Xia &amp; Ma (<em>Computers in Human Behavior<\/em>, 2026-08-25) used eye-tracking to show attention and norm perception in <em>online comments<\/em> \u2014 not just the primary post \u2014 shift attitudes toward sunscreen. This is a distinct mechanism from backlog item EX-2's short-form-video framing and from the well-known PLOS Digital Health TikTok-engagement study (see Trend signals) \u2014 a comment-section angle with no dermatology-journal translation yet.<\/li><li><strong>Proposed article type:<\/strong> Viewpoint / Commentary<\/li><li><strong>Evidence needed:<\/strong> literature only<\/li><li><strong>Target journals:<\/strong> JAMA Dermatology (Viewpoint) \u2192 Journal of the American Academy of Dermatology (Notes &amp; Comments) \u2192 Photodermatology, Photoimmunology &amp; Photomedicine (Letter to the Editor)<\/li><li><strong>Budget:<\/strong> JAMA Derm Viewpoint spec as above; Photodermatology Letter \u22641000 w incl. references, \u226410 refs, \u22642 figs/tables.<\/li><li><strong>Rubric (quick):<\/strong> novelty 4 / feas 5 / impact 3 / vis 3 / fit 4 / risk 4 / effort 5 \u2192 <strong>4.10<\/strong><\/li><li><strong>First action:<\/strong> Pull the Chen et al. full text and confirm it hasn't already been picked up by a dermatology commentary elsewhere.<\/li><\/ul>\n<h3>Idea 5 \u2014 A 50-state (and growing) patchwork: what JAAD's new legislative review means for pediatric sun-protection advocacy<\/h3>\n<ul><li><strong>Topic:<\/strong> pediatric-pregnancy (secondary: skin-cancer-prevention)<\/li><li><strong>Why now:<\/strong> Gandhi, Shetty &amp; Fayyad (<em>JAAD<\/em>, 2026-09-03) just published a cross-sectional review of U.S. state legislation on pediatric UV protection. A companion Viewpoint proposing next steps (federal standardization, clinician advocacy) responds directly to a paper published inside this window \u2014 timely, but competitive risk is real since other commentaries may already be in the pipeline responding to the same JAAD paper.<\/li><li><strong>Proposed article type:<\/strong> Viewpoint / Commentary<\/li><li><strong>Evidence needed:<\/strong> literature + regulatory record only<\/li><li><strong>Target journals:<\/strong> JAMA Dermatology (Viewpoint) \u2192 Journal of the American Academy of Dermatology (Notes &amp; Comments) \u2192 Australasian Journal of Dermatology (Letter/Case)<\/li><li><strong>Budget:<\/strong> JAMA Derm Viewpoint spec as above. JAAD/Australasian rows <code>TBD<\/code> (see Housekeeping).<\/li><li><strong>Rubric (quick):<\/strong> novelty 3 / feas 5 / impact 4 / vis 3 / fit 5 / risk 3 / effort 5 \u2192 <strong>4.05<\/strong><\/li><li><strong>First action:<\/strong> Read Gandhi et al. in full (<a href=\"https://pubmed.ncbi.nlm.nih.gov/42692111/\" target=\"_blank\" rel=\"noopener\">PMID 42692111<\/a>) and check JAAD's site for any commentary already solicited in response before drafting.<\/li><\/ul>\n<hr>\n<h2>2. New literature by topic<\/h2>\n<blockquote><p>Only genuinely new records within the 14-day window. Several topics returned large raw hit counts dominated by unrelated keyword-overlap noise (e.g., \"antioxidant\" MeSH pulling in plant-extract chemistry papers, \"photoaging\" pulling in materials-science UV-weathering-of-plastics papers) \u2014 these are noted but not listed individually.<\/p><\/blockquote>\n<h3>UV filters &amp; regulatory<\/h3>\n<ul><li>**Heisler, Ott, Roberts \u2014 <em>Integrated Environmental Assessment and Management<\/em>, 2026-09-04** \u2014 MERCI framework for modeling direct release of cosmetic ingredients (incl. UV filters) into natural waters; relevant to regulatory risk-assessment methodology. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42696425/\" target=\"_blank\" rel=\"noopener\">PMID 42696425<\/a>.<\/li><li>No journal literature yet on the bemotrizinol commercial launch itself \u2014 see Trend signals and Idea 1. <code>[GAP?]<\/code><\/li><\/ul>\n<h3>Systemic absorption / safety<\/h3>\n<ul><li>**Chowdhury, Mizikovsky \u2014 <em>Toxicology Reports<\/em>, 2026-08-09** \u2014 Australian therapeutic sunscreens are multi-filter mixtures; single-ingredient margin-of-safety assessment may understate exposure. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42633302/\" target=\"_blank\" rel=\"noopener\">PMID 42633302<\/a>.<\/li><\/ul>\n<h3>SPF / UVA test methods &amp; metrology<\/h3>\n<ul><li>**Oliveira, Costa, Nagata \u2014 <em>Photochemical &amp; Photobiological Sciences<\/em>, 2026-09-03** \u2014 chemometric-assisted classification of sunscreen SPF using in vitro UV spectroscopy (new method). <a href=\"https://pubmed.ncbi.nlm.nih.gov/42690549/\" target=\"_blank\" rel=\"noopener\">PMID 42690549<\/a>.<\/li><li>Background: several small in-vitro SPF formulation papers on plant extracts this window (coffee, citrus peel, <em>Minthostachys<\/em>) \u2014 formulation-science noise, not individually synthesis-worthy.<\/li><li>Cross-signal: Australia's TGA issued a multi-sunscreen recall for lower-than-claimed SPF this period (see Trend signals) \u2014 converges with the Chowdhury/Mizikovsky paper above on a real-world SPF-accuracy gap.<\/li><\/ul>\n<h3>Visible light / HEV / iron oxides / tinted sunscreen<\/h3>\n<ul><li>No genuinely new clinical/dermatology literature this window \u2014 hits were dominated by plant and algal photobiology papers unrelated to human photoprotection (keyword overlap on \"light\").<\/li><\/ul>\n<h3>Photoprotection in skin of color<\/h3>\n<ul><li>**Leybengrub, Eyob, Petrossian \u2014 <em>Cureus<\/em>, 2026-07-30** \u2014 \"Beyond Melanin: A Literature Review of Photoprotection Mechanisms and Gaps in Skin of Color.\" A recent narrative review already covering this ground; added to <code>known_reviews<\/code> this run. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42668981/\" target=\"_blank\" rel=\"noopener\">PMID 42668981<\/a>.<\/li><li>**Dreifus, Burke, Alexis \u2014 <em>JAAD<\/em>, 2026-08-27** \u2014 clinical review of laser/energy-device use in skin of color (adjacent, not sunscreen-specific). <a href=\"https://pubmed.ncbi.nlm.nih.gov/42660430/\" target=\"_blank\" rel=\"noopener\">PMID 42660430<\/a>.<\/li><li>**Alghananim et al. \u2014 <em>Skin Research and Technology<\/em>, 2026-09-01** \u2014 KAP survey of sunscreen use among pharmacists in Jordan. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42675863/\" target=\"_blank\" rel=\"noopener\">PMID 42675863<\/a>.<\/li><\/ul>\n<h3>Oral / nutritional photoprotection<\/h3>\n<ul><li>No genuinely new items this window (hits were plant-biology/astrobiology false positives on \"nicotinamide\"/\"antioxidant\").<\/li><\/ul>\n<h3>Topical antioxidants / DNA repair<\/h3>\n<ul><li>**Xu, Zhang, Zhang \u2014 <em>Experimental Dermatology<\/em>, 2026-09-01** \u2014 review of protein post-translational modifications in UV-induced skin damage. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42681945/\" target=\"_blank\" rel=\"noopener\">PMID 42681945<\/a>. <code>[GAP?]<\/code><\/li><li>**Liu, Li, Yang \u2014 <em>Microbiology Spectrum<\/em>, 2026-09-03** \u2014 <em>S. epidermidis<\/em> cell-free supernatant protects HaCaT keratinocytes from UV damage; emerging skin-microbiome/photoprotection mechanism. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42690051/\" target=\"_blank\" rel=\"noopener\">PMID 42690051<\/a>.<\/li><li>**Micko\u015b et al. \u2014 <em>Pharmaceuticals<\/em>, 2026-07-24** \u2014 infrared photoprotective potential of cosmetic ingredients via directional-hemispherical reflectance (new IR measurement method). <a href=\"https://pubmed.ncbi.nlm.nih.gov/42653644/\" target=\"_blank\" rel=\"noopener\">PMID 42653644<\/a>.<\/li><\/ul>\n<h3>Skin cancer / actinic keratosis prevention<\/h3>\n<ul><li>**Gandhi, Shetty, Fayyad \u2014 <em>JAAD<\/em>, 2026-09-03** \u2014 cross-sectional review of U.S. state legislation on pediatric UV protection. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42692111/\" target=\"_blank\" rel=\"noopener\">PMID 42692111<\/a>.<\/li><li>**Reynolds, Tripathi, Carroll \u2014 <em>JAAD<\/em> (ahead-of-print)** \u2014 twin-cohort concordance study on genetic/environmental contributions to sun-protection behavior. <a href=\"https://doi.org/10.1016/j.jaad.2026.08.116\" target=\"_blank\" rel=\"noopener\">DOI 10.1016/j.jaad.2026.08.116<\/a>.<\/li><li>**Kumar, Pandey, Jan \u2014 <em>JEADV Clinical Practice<\/em>, 2026-08-30** \u2014 systematic review &amp; meta-analysis of sun-protection behaviors in skin cancer survivors; added to <code>known_reviews<\/code> this run. <a href=\"https://doi.org/10.1002/jvc2.70434\" target=\"_blank\" rel=\"noopener\">DOI 10.1002/jvc2.70434<\/a>.<\/li><li>**McNoe, Gray, Gage \u2014 <em>NZ Medical Journal<\/em>, 2026-08-28** \u2014 national survey on public support for government-led skin cancer prevention. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42659666/\" target=\"_blank\" rel=\"noopener\">PMID 42659666<\/a>.<\/li><li>**Hassan, Diab, Jaber \u2014 <em>European Journal of Oncology Nursing<\/em>, 2026-08-25** \u2014 multi-institutional cross-sectional study of the awareness-behavior gap in prevention. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42679688/\" target=\"_blank\" rel=\"noopener\">PMID 42679688<\/a>.<\/li><li>**Islam \u2014 <em>Journal of Cancer Education<\/em>, 2026-08-27** \u2014 extending campus photoprotection beyond free sunscreen dispensers. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42658399/\" target=\"_blank\" rel=\"noopener\">PMID 42658399<\/a>.<\/li><li>**Climstein, Stapelberg, Miller \u2014 <em>Journal of Cancer Education<\/em>, 2026-08-28** \u2014 diagnostic accuracy of self-skin examination in high-risk populations. <a href=\"https://doi.org/10.1007/s13187-026-02977-z\" target=\"_blank\" rel=\"noopener\">DOI 10.1007/s13187-026-02977-z<\/a>.<\/li><\/ul>\n<h3>Photoaging; infrared-A; pollution/exposome<\/h3>\n<ul><li>Most of this topic's raw hits (tire-wear particles, microplastics, environmental-pollution \"photoaging\") are materials-science false positives \u2014 \"photoaging\" there means UV weathering of plastics, not skin aging. <code>[NOISE PATTERN \u2014 consider tightening query]<\/code><\/li><li>**Thao, Thuy \u2014 <em>Biology<\/em>, 2026-08-17** \u2014 general review, \"Human Skin Aging: Physiology and Pathophysiology\"; unclear how substantively it covers photoaging/IR-A specifically \u2014 verify before treating as a competing synthesis. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42651711/\" target=\"_blank\" rel=\"noopener\">PMID 42651711<\/a>. <code>[GAP?]<\/code><\/li><\/ul>\n<h3>Behavior, adherence, real-world application<\/h3>\n<ul><li>Reynolds/Tripathi/Carroll twin study (above) is the standout new item.<\/li><li>**De Castro-Maqueda et al. \u2014 <em>Photochemistry and Photobiology<\/em>, 2026-09-01** \u2014 sun-exposure/photoprotection habits, knowledge, and attitudes among elite beach soccer players. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42678127/\" target=\"_blank\" rel=\"noopener\">PMID 42678127<\/a>.<\/li><li>Cross-refs: Alghananim (pharmacist KAP survey) and Hassan (awareness-behavior gap), both above.<\/li><\/ul>\n<h3>Pediatric / pregnancy<\/h3>\n<ul><li>Gandhi et al. legislative review (above) is the standout new item.<\/li><li>**Smith, Zeichner, Frey \u2014 <em>Journal of Drugs in Dermatology<\/em>, 2026-09-01** \u2014 safety/tolerability of facial skincare in children and adolescents, multigenerational testing. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42696339/\" target=\"_blank\" rel=\"noopener\">PMID 42696339<\/a>.<\/li><\/ul>\n<h3>Environmental / reef / ecotoxicology<\/h3>\n<ul><li>**Jin, Hong, Lee \u2014 <em>Comparative Biochemistry and Physiology C<\/em>, 2026-08-31** \u2014 \"Benzophenone-type UV filters in aquatic ecosystems: sources, toxicological impacts, and interactions with coexisting...\" \u2014 a recent synthesis; added to <code>known_reviews<\/code> this run. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42674295/\" target=\"_blank\" rel=\"noopener\">PMID 42674295<\/a>.<\/li><li>**Lu, Guan, Tang \u2014 <em>Environmental Pollution<\/em>, 2026-09-01** \u2014 mechanisms of 4-methylbenzylidene camphor (4-MBC)-induced developmental neurotoxicity. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42680049/\" target=\"_blank\" rel=\"noopener\">PMID 42680049<\/a>.<\/li><li>**Hammerle et al. \u2014 <em>Algal Research<\/em> / bioRxiv, 2026-08-24/26** \u2014 discovery of a novel UV-absorbing mycosporine-like amino acid in a lichen-associated alga; potential natural next-gen filter lead.<\/li><\/ul>\n<h3>Sunscreen and vitamin D<\/h3>\n<ul><li>No item directly addresses the sunscreen-use/vitamin-D-status question this window; raw hits were generic vitamin-D-deficiency/disease papers unrelated to sun exposure (MeSH overlap noise). <code>[NOISE PATTERN]<\/code><\/li><\/ul>\n<h3>Misinformation, social media, sun-seeking trends<\/h3>\n<ul><li>**Chen, Xia, Ma \u2014 <em>Computers in Human Behavior<\/em>, 2026-08-25** \u2014 eye-tracking study on attention/norm perception in online comments shaping attitudes toward sunscreen. Feeds Idea 4.<\/li><\/ul>\n<h3>Photodermatoses / drug-induced photosensitivity<\/h3>\n<ul><li>No genuinely new clinical items this window (hits were unrelated biomaterials/photodynamic-therapy papers).<\/li><\/ul>\n<h3>Formulation, vehicle, photostability<\/h3>\n<ul><li>**Lee, Kim, Lee \u2014 <em>Toxicological Research<\/em>, newly indexed this window** \u2014 risk assessment of DHHB (diethylamino hydroxybenzoyl hexyl benzoate) as a UV filter in cosmetics. <a href=\"https://pubmed.ncbi.nlm.nih.gov/42694314/\" target=\"_blank\" rel=\"noopener\">PMID 42694314<\/a>.<\/li><li>Cross-refs: Oliveira (chemometric SPF classification) and Heisler (MERCI framework), both above.<\/li><\/ul>\n<hr>\n<h2>3. Trend signals (free sources)<\/h2>\n<table><thead><tr><th>Signal<\/th><th>Source<\/th><th>Note / publishable angle<\/th><\/tr><\/thead><tbody><tr><td>Ultra Violette's \"Unblock Screen SPF 50\" \u2014 first bemotrizinol sunscreen sold in the US, launched 2026-08-31<\/td><td>Google News (PR Newswire, NewBeauty, Drug Topics)<\/td><td>Feeds Idea 1 \u2014 extensive lay coverage, no dermatology-journal piece yet<\/td><\/tr><tr><td>Allies of Skin voluntary recall of 82,596 units of \"THE ONE SPF 50\" gel for subpotent SPF (~Sept 2026)<\/td><td>Google News (The Healthy, Cosmetics Business)<\/td><td>Real-world SPF-accuracy gap; pairs with the Chowdhury/Mizikovsky paper and TGA action below<\/td><\/tr><tr><td>Australia's TGA recalled multiple sunscreens for lower-than-claimed SPF levels (ongoing 2026)<\/td><td>WebSearch (tga.gov.au)<\/td><td>Same real-world SPF-accuracy theme \u2014 could support a short data-driven Research Letter if a comparative dataset is assembled<\/td><\/tr><tr><td>TikTok sunscreen misinformation: PLOS Digital Health study found only ~6\u201313% of videos carry misinformation, but those draw disproportionate engagement<\/td><td>WebSearch (journals.plos.org)<\/td><td>Background evidence base for existing backlog item EX-2 \u2014 not a new idea, but confirms EX-2's premise is current<\/td><\/tr><tr><td>\"Office ageing\" \u2014 Chinese office workers using parasols/sunscreen indoors, a cultural sun-avoidance trend<\/td><td>Google News (South China Morning Post)<\/td><td>Minor; could feed a future cross-cultural photoprotection-behavior angle, not actioned this week<\/td><\/tr><\/tbody><\/table>\n<hr>\n<h2>4. Housekeeping<\/h2>\n<ul><li><strong>Topics whose <code>last_reviewed<\/code> is blank or &gt;90 days old:<\/strong> 13 of 16 remain blank \u2014 <code>uv-filters-regulatory<\/code>, <code>systemic-absorption-safety<\/code>, <code>spf-testing-metrology<\/code>, <code>visible-light-hev<\/code>, <code>oral-systemic-photoprotection<\/code>, <code>antioxidants-dna-repair<\/code>, <code>photoaging-infrared-pollution<\/code>, <code>behavior-adherence-application<\/code>, <code>pediatric-pregnancy<\/code>, <code>vitamin-d-tradeoff<\/code>, <code>misinformation-public-health<\/code>, <code>photodermatoses-drug-photosensitivity<\/code>, <code>formulation-vehicle-photostability<\/code>. This run set <code>last_reviewed: 2026-09-06<\/code> and added a <code>known_reviews<\/code> entry for the 3 topics where a competing recent synthesis was directly identified while vetting this week's ideas: <code>photoprotection-skin-of-color<\/code>, <code>skin-cancer-prevention<\/code>, <code>environmental-reef<\/code>.<\/li><li><strong>Journal rows still <code>TBD<\/code> that a proposed idea depends on:<\/strong><ul><li><code>Journal of the American Academy of Dermatology<\/code>, Letter (Notes &amp; Comments/Research Letter) \u2014 word/reference caps <code>TBD<\/code>; every one of this week's 5 ideas names it as <code>target_journal_2<\/code>. Guidelines URL: https://www.jaad.org/content/authorinfo (Elsevier \u2014 cannot be auto-fetched per <code>journals/guidelines-notes.md<\/code>; needs a manual pass).<\/li><li><code>Australasian Journal of Dermatology<\/code>, Letter/Case \u2014 word/reference caps <code>TBD<\/code>; depended on by Ideas 2, 3, 5. Guidelines URL: https://onlinelibrary.wiley.com/page/journal/14400960/homepage/forauthors.html (Wiley \u2014 cannot be auto-fetched).<\/li><\/ul><\/li><li><strong>OpenAlex query format issue:<\/strong> the <code>openalex<\/code> field values in <code>taxonomy/topics.yaml<\/code> are long multi-word strings; OpenAlex's current search API requires ALL words to appear in the full text (AND, not relevance-ranked OR), so 12 of 16 topics returned 0 hits on the literal query. This run substituted shortened 3\u20135 word queries to get usable results. Recommend trimming <code>taxonomy/topics.yaml<\/code>'s <code>openalex<\/code> fields to short core-term phrases at the next quarterly review.<\/li><li><strong>Noise patterns worth tightening:<\/strong> <code>photoaging-infrared-pollution<\/code> pulls in materials-science \"photoaging\" (UV weathering of plastics/microplastics), and <code>vitamin-d-tradeoff<\/code> pulls in generic vitamin-D-deficiency-disease papers unrelated to sun exposure. Both are MeSH/keyword ambiguity, not fetch failures \u2014 consider adding exclusion terms at the next taxonomy review.<\/li><li><strong>Fetch failures this run:<\/strong> none. PubMed E-utilities, OpenAlex, Google News RSS, and WebSearch all returned data successfully.<\/li><li><strong>Backlog rows <code>EX-1<\/code>/<code>EX-2<\/code><\/strong> remain marked as examples to delete \u2014 flagged in case they haven't been cleaned up yet.<\/li><\/ul>"};</script>
+<script>
+(function(){
+  var KEY='ss-dash-tab';
+  var btns=[].slice.call(document.querySelectorAll('nav button'));
+  var panels=[].slice.call(document.querySelectorAll('.panel'));
+  function show(id){
+    btns.forEach(function(b){b.classList.toggle('on',b.dataset.panel===id)});
+    panels.forEach(function(p){p.hidden=p.id!==id});
+    try{localStorage.setItem(KEY,id)}catch(e){}
+  }
+  btns.forEach(function(b){b.addEventListener('click',function(){show(b.dataset.panel)})});
+  var saved;try{saved=localStorage.getItem(KEY)}catch(e){}
+  show(document.getElementById(saved)?saved:btns[0].dataset.panel);
+
+  // digest picker
+  var sel=document.getElementById('digestPick');
+  var host=document.getElementById('digestBody');
+  if(sel&&host&&window.DIGESTS){
+    function render(){host.innerHTML=window.DIGESTS[sel.value]||'<p>(no digest)</p>'}
+    sel.addEventListener('change',render); render();
+  }
+
+  // journal filters
+  var q=document.getElementById('jq'),ty=document.getElementById('jtype'),
+      tb=document.getElementById('jtbd'),st=document.getElementById('jstale'),
+      cnt=document.getElementById('jcount'),
+      rows=[].slice.call(document.querySelectorAll('#jtable tbody tr'));
+  function filt(){
+    if(!rows.length)return;
+    var s=(q.value||'').toLowerCase().trim(),t=ty.value,
+        needTbd=tb.checked,needStale=st.checked,shown=0;
+    rows.forEach(function(r){
+      var ok=(!s||r.dataset.search.indexOf(s)>=0)
+        &&(!t||r.dataset.type===t)
+        &&(!needTbd||r.dataset.tbd==='1')
+        &&(!needStale||r.dataset.stale==='1');
+      r.hidden=!ok; if(ok)shown++;
+    });
+    cnt.textContent=shown+' / '+rows.length+' rows';
+  }
+  [q,ty,tb,st].forEach(function(el){el&&el.addEventListener('input',filt)});
+  filt();
+})();
+</script>
+</body>
+</html>
