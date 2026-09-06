@@ -4,7 +4,20 @@
 # Fields:
 #   id            stable slug (used as topic_id in ideas/backlog.csv)
 #   label         human-readable name
-#   pubmed        query string for NCBI E-utilities esearch (db=pubmed)
+#   pubmed        query string for NCBI E-utilities esearch (db=pubmed).
+#                 Topics whose terms overlap large non-dermatology literatures
+#                 (plant photobiology, food packaging, polymer weathering,
+#                 marine biology) carry a trailing "cutaneous guard":
+#                   AND (skin[tiab] OR cutaneous[tiab] OR dermat*[tiab] OR
+#                   epiderm*[tiab] OR keratinocyte*[tiab] OR melanocyte*[tiab] OR
+#                   fibroblast*[tiab] OR "Skin"[MeSH] OR "Skin Aging"[MeSH] OR
+#                   "Skin Neoplasms"[MeSH] OR "Sunburn"[MeSH] OR sunburn[tiab] OR
+#                   "sun protection"[tiab] OR "minimal erythema dose"[tiab] OR
+#                   photoaging[tiab] OR photoageing[tiab])
+#                 and, where materials-science hits recur, a NOT clause of
+#                 packaging / agriculture / construction / energy terms. Add the
+#                 same guard to any new broad topic. environmental-reef is
+#                 deliberately left unguarded (it wants marine/ecotox content).
 #   openalex      value for the `search` param of https://api.openalex.org/works.
 #                 KEEP SHORT (2-4 core words): OpenAlex requires ALL words to
 #                 appear, so long phrases return zero hits.
@@ -36,7 +49,7 @@ topics:
 
   - id: spf-testing-metrology
     label: SPF / UVA test methods, ISO standards, SPF>50 debate, photostability
-    pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH] OR "sun protection factor"[tiab]) AND (SPF[tiab] OR "UVA protection factor"[tiab] OR "critical wavelength"[tiab] OR "in vitro"[tiab] OR "ISO 24444"[tiab] OR "ISO 23675"[tiab] OR "ISO 23698"[tiab] OR "test method*"[tiab] OR "broad spectrum"[tiab] OR photostab*[tiab] OR "SPF 100"[tiab] OR "high SPF"[tiab])'
+    pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH] OR "sun protection factor"[tiab]) AND (SPF[tiab] OR "UVA protection factor"[tiab] OR "critical wavelength"[tiab] OR "in vitro"[tiab] OR "ISO 24444"[tiab] OR "ISO 23675"[tiab] OR "ISO 23698"[tiab] OR "test method*"[tiab] OR "broad spectrum"[tiab] OR photostab*[tiab] OR "SPF 100"[tiab] OR "high SPF"[tiab]) AND (skin[tiab] OR cutaneous[tiab] OR dermat*[tiab] OR epiderm*[tiab] OR keratinocyte*[tiab] OR melanocyte*[tiab] OR fibroblast*[tiab] OR "Skin"[MeSH] OR "Skin Aging"[MeSH] OR "Skin Neoplasms"[MeSH] OR "Sunburn"[MeSH] OR sunburn[tiab] OR "sun protection"[tiab] OR "minimal erythema dose"[tiab] OR photoaging[tiab] OR photoageing[tiab]) NOT (packaging[tiab] OR "food industry"[tiab] OR postharvest[tiab] OR "shelf life"[tiab] OR agricultur*[tiab] OR crop*[tiab] OR "3D print*"[tiab] OR concrete[tiab] OR asphalt[tiab] OR bitumen[tiab] OR "building material*"[tiab] OR photovoltaic*[tiab] OR "solar cell*"[tiab] OR wastewater[tiab])'
     openalex: sunscreen SPF testing
     last_reviewed:
     known_reviews: []
@@ -44,7 +57,7 @@ topics:
 
   - id: visible-light-hev
     label: Visible light / HEV / blue light; iron oxides; tinted sunscreen
-    pubmed: '("Light"[MeSH] OR "visible light"[tiab] OR "high-energy visible"[tiab] OR "blue light"[tiab] OR HEVL[tiab] OR "iron oxide*"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR tinted[tiab] OR pigment*[tiab] OR melasma[tiab] OR hyperpigmentation[tiab])'
+    pubmed: '("Light"[MeSH] OR "visible light"[tiab] OR "high-energy visible"[tiab] OR "blue light"[tiab] OR HEVL[tiab] OR "iron oxide*"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR tinted[tiab] OR pigment*[tiab] OR melasma[tiab] OR hyperpigmentation[tiab]) AND (skin[tiab] OR cutaneous[tiab] OR dermat*[tiab] OR epiderm*[tiab] OR keratinocyte*[tiab] OR melanocyte*[tiab] OR fibroblast*[tiab] OR "Skin"[MeSH] OR "Skin Aging"[MeSH] OR "Skin Neoplasms"[MeSH] OR "Sunburn"[MeSH] OR sunburn[tiab] OR "sun protection"[tiab] OR "minimal erythema dose"[tiab] OR photoaging[tiab] OR photoageing[tiab])'
     openalex: visible light photoprotection
     last_reviewed:
     known_reviews: []
@@ -60,7 +73,7 @@ topics:
 
   - id: oral-systemic-photoprotection
     label: Oral / nutritional photoprotection (Polypodium, nicotinamide, carotenoids)
-    pubmed: '(Polypodium[tiab] OR "Polypodium leucotomos"[tiab] OR fernblock[tiab] OR niacinamide[tiab] OR nicotinamide[tiab] OR "beta-carotene"[tiab] OR carotenoid*[tiab] OR astaxanthin[tiab] OR lycopene[tiab] OR "oral photoprotection"[tiab] OR "systemic photoprotection"[tiab] OR "nutritional photoprotection"[tiab]) AND (photoprotect*[tiab] OR ultraviolet[tiab] OR "UV-induced"[tiab] OR erythema[tiab] OR "minimal erythema dose"[tiab] OR photoaging[tiab])'
+    pubmed: '(Polypodium[tiab] OR "Polypodium leucotomos"[tiab] OR fernblock[tiab] OR niacinamide[tiab] OR nicotinamide[tiab] OR "beta-carotene"[tiab] OR carotenoid*[tiab] OR astaxanthin[tiab] OR lycopene[tiab] OR "oral photoprotection"[tiab] OR "systemic photoprotection"[tiab] OR "nutritional photoprotection"[tiab]) AND (photoprotect*[tiab] OR ultraviolet[tiab] OR "UV-induced"[tiab] OR erythema[tiab] OR "minimal erythema dose"[tiab] OR photoaging[tiab]) AND (skin[tiab] OR cutaneous[tiab] OR dermat*[tiab] OR epiderm*[tiab] OR keratinocyte*[tiab] OR melanocyte*[tiab] OR fibroblast*[tiab] OR "Skin"[MeSH] OR "Skin Aging"[MeSH] OR "Skin Neoplasms"[MeSH] OR "Sunburn"[MeSH] OR sunburn[tiab] OR "sun protection"[tiab] OR "minimal erythema dose"[tiab] OR photoaging[tiab] OR photoageing[tiab])'
     openalex: oral photoprotection
     last_reviewed:
     known_reviews: []
@@ -68,7 +81,7 @@ topics:
 
   - id: antioxidants-dna-repair
     label: Topical antioxidants; DNA-repair enzymes; photolyase
-    pubmed: '("Antioxidants"[MeSH] OR antioxidant*[tiab] OR "vitamin C"[tiab] OR "ascorbic acid"[tiab] OR "vitamin E"[tiab] OR tocopherol[tiab] OR "ferulic acid"[tiab] OR "DNA repair enzyme*"[tiab] OR photolyase[tiab] OR "T4 endonuclease"[tiab] OR "8-oxoguanine"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR topical[tiab] OR ultraviolet[tiab])'
+    pubmed: '("Antioxidants"[MeSH] OR antioxidant*[tiab] OR "vitamin C"[tiab] OR "ascorbic acid"[tiab] OR "vitamin E"[tiab] OR tocopherol[tiab] OR "ferulic acid"[tiab] OR "DNA repair enzyme*"[tiab] OR photolyase[tiab] OR "T4 endonuclease"[tiab] OR "8-oxoguanine"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR topical[tiab] OR ultraviolet[tiab]) AND (skin[tiab] OR cutaneous[tiab] OR dermat*[tiab] OR epiderm*[tiab] OR keratinocyte*[tiab] OR melanocyte*[tiab] OR fibroblast*[tiab] OR "Skin"[MeSH] OR "Skin Aging"[MeSH] OR "Skin Neoplasms"[MeSH] OR "Sunburn"[MeSH] OR sunburn[tiab] OR "sun protection"[tiab] OR "minimal erythema dose"[tiab] OR photoaging[tiab] OR photoageing[tiab]) NOT (packaging[tiab] OR "food industry"[tiab] OR postharvest[tiab] OR "shelf life"[tiab] OR agricultur*[tiab] OR crop*[tiab] OR "3D print*"[tiab] OR concrete[tiab] OR asphalt[tiab] OR bitumen[tiab] OR "building material*"[tiab] OR photovoltaic*[tiab] OR "solar cell*"[tiab] OR wastewater[tiab])'
     openalex: antioxidant photoprotection
     last_reviewed:
     known_reviews: []
@@ -84,7 +97,7 @@ topics:
 
   - id: photoaging-infrared-pollution
     label: Photoaging; infrared-A; air pollution & the exposome
-    pubmed: '("Skin Aging"[MeSH] OR photoaging[tiab] OR photoageing[tiab] OR "extrinsic aging"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR infrared[tiab] OR "infrared A"[tiab] OR IRA[tiab] OR "air pollution"[tiab] OR "particulate matter"[tiab] OR exposome[tiab] OR environmental[tiab]) NOT (polymer*[tiab] OR plastic*[tiab] OR microplastic*[tiab] OR "tire wear"[tiab] OR asphalt[tiab] OR bitumen[tiab] OR weathering[tiab] OR coating*[tiab] OR "building material*"[tiab])'
+    pubmed: '("Skin Aging"[MeSH] OR photoaging[tiab] OR photoageing[tiab] OR "extrinsic aging"[tiab]) AND (sunscreen*[tiab] OR photoprotect*[tiab] OR infrared[tiab] OR "infrared A"[tiab] OR IRA[tiab] OR "air pollution"[tiab] OR "particulate matter"[tiab] OR exposome[tiab] OR environmental[tiab]) AND (skin[tiab] OR cutaneous[tiab] OR dermat*[tiab] OR epiderm*[tiab] OR keratinocyte*[tiab] OR melanocyte*[tiab] OR fibroblast*[tiab] OR "Skin"[MeSH] OR "Skin Aging"[MeSH] OR "Skin Neoplasms"[MeSH] OR "Sunburn"[MeSH] OR sunburn[tiab] OR "sun protection"[tiab] OR "minimal erythema dose"[tiab] OR photoaging[tiab] OR photoageing[tiab]) NOT (polymer*[tiab] OR plastic*[tiab] OR microplastic*[tiab] OR nanoplastic*[tiab] OR "tire wear"[tiab] OR asphalt[tiab] OR bitumen[tiab] OR weathering[tiab] OR coating*[tiab] OR "building material*"[tiab] OR packaging[tiab] OR postharvest[tiab])'
     openalex: sunscreen photoaging infrared
     last_reviewed:
     known_reviews: []
@@ -117,8 +130,8 @@ topics:
   - id: vitamin-d-tradeoff
     label: Sunscreen use and vitamin D status
     pubmed: '(sunscreen*[tiab] OR "sun protection"[tiab] OR photoprotect*[tiab] OR "sun exposure"[tiab]) AND ("vitamin D"[ti] OR "25-hydroxyvitamin D"[ti] OR "vitamin D deficiency"[ti] OR "vitamin D status"[tiab] OR "serum 25(OH)D"[tiab])'
-    last_reviewed:
     openalex: sunscreen vitamin D
+    last_reviewed:
     known_reviews: []
     notes: Real-world use rarely lowers 25(OH)D; useful counseling-myth rebuttal material. Vitamin D restricted to title to cut generic deficiency-disease noise.
 
@@ -140,7 +153,7 @@ topics:
 
   - id: formulation-vehicle-photostability
     label: Formulation & vehicle (spray, powder, stick), photostability, mineral filters
-    pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH]) AND (formulation*[tiab] OR vehicle*[tiab] OR spray[tiab] OR aerosol[tiab] OR powder*[tiab] OR stick[tiab] OR cosmetic*[tiab] OR sensory[tiab] OR "cosmetic elegance"[tiab] OR photostab*[tiab] OR "film formation"[tiab] OR nanoparticle*[tiab] OR "zinc oxide"[tiab] OR "titanium dioxide"[tiab])'
+    pubmed: '(sunscreen*[tiab] OR "Sunscreening Agents"[MeSH]) AND (formulation*[tiab] OR vehicle*[tiab] OR spray[tiab] OR aerosol[tiab] OR powder*[tiab] OR stick[tiab] OR cosmetic*[tiab] OR sensory[tiab] OR "cosmetic elegance"[tiab] OR photostab*[tiab] OR "film formation"[tiab] OR nanoparticle*[tiab] OR "zinc oxide"[tiab] OR "titanium dioxide"[tiab]) AND (skin[tiab] OR cutaneous[tiab] OR dermat*[tiab] OR epiderm*[tiab] OR keratinocyte*[tiab] OR melanocyte*[tiab] OR fibroblast*[tiab] OR "Skin"[MeSH] OR "Skin Aging"[MeSH] OR "Skin Neoplasms"[MeSH] OR "Sunburn"[MeSH] OR sunburn[tiab] OR "sun protection"[tiab] OR "minimal erythema dose"[tiab] OR photoaging[tiab] OR photoageing[tiab]) NOT (packaging[tiab] OR "food industry"[tiab] OR postharvest[tiab] OR "shelf life"[tiab] OR agricultur*[tiab] OR crop*[tiab] OR "3D print*"[tiab] OR concrete[tiab] OR asphalt[tiab] OR bitumen[tiab] OR "building material*"[tiab] OR photovoltaic*[tiab] OR "solar cell*"[tiab] OR wastewater[tiab] OR textile*[tiab] OR fabric*[tiab])'
     openalex: sunscreen formulation photostability
     last_reviewed:
     known_reviews: []
