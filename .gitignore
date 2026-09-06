@@ -17,3 +17,7 @@ venv/
 
 # local digest run logs
 scripts/logs/
+
+# generated dashboard (rebuild with scripts/build-dashboard.py)
+# delete this line if you want to publish it via GitHub Pages
+/dashboard.html

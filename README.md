@@ -12,6 +12,25 @@ Four engines:
    `matching/decision-tree.md` and `journals/journals.csv`.
 4. **Execution tracking** — move ideas through the lifecycle in `ideas/backlog.csv`.
 
+## Dashboard
+
+A read-only view of the whole pipeline in one HTML file — no server, no
+dependencies (Python standard library only):
+
+```
+python3 scripts/build-dashboard.py     # writes ./dashboard.html
+open dashboard.html
+```
+
+Four tabs: **Pipeline board** (`ideas/backlog.csv` by lifecycle status),
+**Latest digest** (newest `digests/*.md` rendered, with a picker for older ones),
+**Topic white-space** (`taxonomy/topics.yaml` staleness × known reviews × backlog
+coverage × mentions in the latest digest), **Journal targeting**
+(`journals/journals.csv`, filterable, flags `TBD` specs and stale `guidelines_last_checked`).
+
+Re-run the script after editing any source file. `dashboard.html` is gitignored;
+regenerate it rather than committing it.
+
 ## Repo layout
 
 ```
@@ -23,6 +42,7 @@ ideas/scoring-rubric.md       the 7 scoring criteria, weights, thresholds
 matching/decision-tree.md     article-type selection + reporting-guideline map + journal tiering
 digests/TEMPLATE.md           format for the weekly surveillance digest
 digests/YYYY-MM-DD.md         weekly output
+scripts/build-dashboard.py    generates ./dashboard.html from the files above
 ```
 
 ## The weekly digest
